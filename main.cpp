@@ -2,14 +2,29 @@
 #include<cmath>
 #include<random>
 #include<complex>
+
 const long double pi = M_PI;
+// all quantities in Plank units (\hbar = 1, c = 1, G = 1)
+double h = 0.001;// h = H/H_cr - magnetic field Schwinger field(H_cr = m^2 c^3 /(e\hbar) ) ratio
+const double m = 1.0; // lepton/proton mass in electron masses
+const double gamma0 = 100.0;// = energy / (m_{particle} c^2)
+double omega_cr = 0.45*h * gamma0*gamma0;//
 using namespace std;
 typedef complex<double> dcomp;
 dcomp i(0,1);
 
+double ind(double h,double omega){
+  double kappa = h*omega;
+  if (kappa <= 2.01523 ){
+    return 0.22;
+  } else{
+    return 0.56 / pow(kappa,4.0/3.0);
+  }
+}
+
 dcomp dipole_jE(double omega, double theta,double t){
 
-  double omega0 = 2 * pi;// 1 Hz dipol frequency
+  double omega0 = 1;// \hbar / (m_e * c^2) units
   double a = 0.01;// a = dipole_length / lambda0
   //k = omega / c
   double kd = a * 2 * pi * omega / omega0 ;//
@@ -27,12 +42,12 @@ double c1d(double t1,double t2,double omega, double theta){
 
 dcomp sync_jE(double omega, double theta,double t){
   // all quantities in Plank units
-  // m_e = 1
-  double gamma = 100;
-  double beta = sqrt(1 - 1/(gamma * gamma));
-  double h = 0.001;// h = H/H_cr
-  double omega0 = h / gamma;
-  return cos(theta) * exp( (-i * omega * t + i * (omega / omega0) * beta * sin(omega0*t) * cos(theta) ) * gamma/(gamma - omega) );
+  // rotating particle
+  double beta = sqrt(1 - 1/(gamma0 * gamma0));
+  double omega0 =  h /(gamma0 * m * m);
+  double n = 1 + 1.0 * h * h * ind(h,omega) / ( pi * 137.0);//index of refraction (Re part)
+
+  return cos(theta) * exp( (-i * omega* t + i * n * (omega / omega0) * beta * sin(omega0*t) * cos(theta) ) * gamma0/(gamma0 - omega / m) );
 }
 
 double c1s(double t1,double t2,double omega, double theta){
@@ -48,19 +63,22 @@ double c1s(double t1,double t2,double omega, double theta){
 extern "C" {
 
   double* metropolis_integration(size_t n){
-    // doesn't work now !
+
     default_random_engine gen{static_cast<long unsigned int>(time(NULL))};
-    uniform_real_distribution<double> omega_dist(10,20000);//for dipole
-    uniform_real_distribution<double> angle_dist(-pi/2,pi/2);
+    uniform_real_distribution<double> omega_dist(0.01,gamma0);
+    uniform_real_distribution<double> angle_dist(-20.0/gamma0,20.0/gamma0);
     uniform_real_distribution<double> r(0,1);
     double* x = new double[size_t (2*n)];
     x[0] = 100;// even - ang. freq. (omega)
-    x[1] = pi / 2;// odd - angle
-    double tmp = c1s(0,1000,x[0],x[1]);
+    x[1] = 0.0;// odd - angle
+    double form_time = 1.0*m*m / h;// coherence time /formation time
+    double t1 = - form_time / 2.0;
+    double t2 = form_time / 2.0;
+    double tmp = c1s(t1,t2,x[0],x[1]);
     for(unsigned int j = 1; j < n; ++j){
       double omega = omega_dist(gen);
       double angle = angle_dist(gen);
-      double s = c1s(0,1000,omega,angle);
+      double s = c1s(t1,t2,omega,angle);
       if (s >= tmp){
         x[2*j] = omega;
         x[2*j+1] = angle;
@@ -77,17 +95,18 @@ extern "C" {
     return x;
   }
 
-  double* metropolis_spectrum(size_t n){
-    // spectrum for a given angle
+  double* metropolis_spectrum_sy(size_t n){
+    // spectrum for a given angle!
     default_random_engine gen{static_cast<long unsigned int>(time(NULL))};
-    uniform_real_distribution<double> omega_dist(0.1, 10);// omega_cr = 1.5 h*gamma*gamma
+    uniform_real_distribution<double> omega_dist(0.1,gamma0);//
     uniform_real_distribution<double> r(0,1);
     double* x = new double[n];
-    x[0] = 2;//- ang. freq. (omega)
+    x[0] = 1.0;//seed value
     double angle = 0.0;
-    double t1 = -15000;
-    double t2 = 15000;// t2 ~ 1/h
-    double tmp = c1s(t1,t2,x[0],angle) * x[0];// |C_m|^2 * omega
+    double form_time = 1.0*m*m / h;// coherence time /formation time
+    double t1 = - form_time / 2.0;
+    double t2 = form_time / 2.0;
+    double tmp = c1s(t1,t2,x[0],angle) * x[0];// omega * |C_m|^2
     for(unsigned int j = 1; j < n; ++j){
       double omega = omega_dist(gen);
       double s = c1s(t1,t2,omega,angle) * omega;
@@ -104,17 +123,20 @@ extern "C" {
     return x;
   }
 
-  double* metropolis_radpattern(size_t n){
+  double* metropolis_radpattern_sy(size_t n){
     // radiation pattern for a given frequency
     default_random_engine gen{static_cast<long unsigned int>(time(NULL))};
-    uniform_real_distribution<double> distribution(0 ,pi);
+    uniform_real_distribution<double> distribution(-20.0/gamma0,20.0/gamma0);
     uniform_real_distribution<double> r(0,1);
     double* x = new double[n];
-    x[0] = 0.1;
-    double tmp = c1d(0,10,2*pi,x[0]);
+    x[0] = 1.0;//seed value
+    double form_time = 1.0*m*m / h;// coherence time /formation time
+    double t1 = - form_time / 2.0;
+    double t2 = form_time / 2.0;
+    double tmp = c1s(t1,t2,omega_cr, x[0]);
     for(unsigned int j = 1; j<n; ++j){
       double tmp_x = distribution(gen);
-      double s = c1d(0,10,2*pi,tmp_x);
+      double s = c1s(t1,t2,omega_cr,tmp_x);
       if (s >= tmp){
         x[j] = tmp_x;
         tmp = s;
