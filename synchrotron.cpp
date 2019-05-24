@@ -36,19 +36,19 @@ double tau2(double omega){
 }
 
 dcomp sync_jE1(double omega,double theta,double t){
-  //double phi = t/tau1(omega) + pow(t / tau2(omega),3.0);
-  double phi = ( omega*t*(1 - beta) + omega*omega0*omega0*t*t*t/6 ) /(1.0 - omega /(m* gamma0) );
-  //double phi =  omega*( t - beta * sin(omega0*t) * cos(theta) / omega0 ) /(1.0 - omega /(m* gamma0) );
-  return exp( -i*phi )*sin(omega0 * t);
+  //double phi = t + t*t*t * pow(tau1(omega) / tau2(omega),3.0);
+  //double phi = ( omega*t*(1 - beta) + omega*omega0*omega0*t*t*t/6 ) /(1.0 - omega /(m* gamma0) );
+  double phi =  omega*( t*tau1(omega) - beta * sin(omega0*t*tau1(omega)) * cos(theta) / omega0 );
+  return exp( -i*phi );
 }
 
 double c1s(double t1,double t2,double omega, double theta){
   // calculating |C_1|^2
   double step = 0;
   if (tau1(omega) > tau2(omega)){
-    step = 0.1*tau2(omega);
+    step = 0.01*tau2(omega);
   } else {
-    step = 0.1*tau1(omega);
+    step = 0.01*tau1(omega);
   }
 
   size_t n = (t2 - t1)/step;
@@ -56,14 +56,21 @@ double c1s(double t1,double t2,double omega, double theta){
   for (unsigned int j = 0;j <= n;j++){
     sum += sync_jE1(omega, theta, t1 + step*j)*step;
   }
-  return pow(abs(sum),2.0);
+  double c1 = pow(abs(sum),2.0);
+  if (abs(sum) > ( 1 / tau1(omega) )*(t2 - t1)*step*step/24.0 ){
+    return c1;
+  }
+  else {
+    return 0.0;
+  }
+  //return pow(abs(sum),2.0);
 }
 
 extern "C" {
   double* metropolis_spectrum_sy(size_t n){
     // spectrum for a given angle!
     default_random_engine gen{static_cast<long unsigned int>(time(NULL))};
-    uniform_real_distribution<double> omega_dist(0.00001,40);//
+    uniform_real_distribution<double> omega_dist(0.001,10);//
     uniform_real_distribution<double> r(0,1);
     double* x = new double[n];
     x[0] = 1;//seed value
@@ -73,7 +80,7 @@ extern "C" {
     for(unsigned int j = 1; j < n; ++j){
       double omega = omega_dist(gen);
 
-      form_time = 10*tau2(omega);
+      form_time = 2*tau2(omega)/tau1(omega);
       //form_time = tau2(omega) * pow( tau2(omega)/tau1(omega) , 0.5);
       double s = c1s( -form_time / 2.0,form_time / 2.0,omega,angle);
       if (s >= tmp){
