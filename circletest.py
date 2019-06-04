@@ -11,12 +11,12 @@ from scipy.special import kv
 # вычисляется спектр излучения (без интегрирования по углам), и сравнивается с формулой (14.83),
 # стр. 484, c $\theta = 0$ из [Jackson J.D., Classical electrodynamics, Wiley, 1962].
 
-n = 5000 # number of random numbers to generate
-radius = 30;
-g = 30;
+n = 2000 # number of random numbers to generate
+radius = 1e6;
+g = 100;
 omega_c = g * g * g / radius;
-omega_max = 3 * omega_c
-nb = 150 # number of bins, bins from 0 to omega_max
+omega_max = 2 * omega_c
+nb = 120 # number of bins, bins from 0 to omega_max
 domega = omega_max / nb
 
 subprocess.run(["make", "circletestlib.so"])
@@ -38,15 +38,19 @@ for i in range(len(x)):
 omega = domega * (0.5 + np.arange(nb))
 xi = omega / (3 * omega_c) # Jackson, Eq. (14.80)
 pth = omega * omega * kv(2/3, xi)**2
-pth = pth / np.sum(pth)
-p = p * omega
+pthsum = np.sum(pth)
+pth = pth / pthsum
+plf = omega**(2/3) # low-frequency asymptotics
+plf = plf / pthsum
+p = p # * omega
 p = p / np.sum(p)
 
 plt.figure(figsize = (4,9))
 
 plt.subplot(211)
-plt.plot(omega, p, 'r-', label = "metropolis")
+plt.plot(omega, 0.1*p, 'r-', label = "metropolis")
 plt.plot(omega, pth, 'c-', label = "Jackson (14.83)")
+plt.plot(omega[:15], plf[:15], 'c--', label = "low freq.")
 plt.plot([omega_c, omega_c], [0, 0.01], ':', color = 'gray')
 plt.xlim(0, omega_max)
 plt.xlabel("omega")

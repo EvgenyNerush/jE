@@ -5,8 +5,8 @@ using namespace std;
 
 // for description, see circletest.py
 
-const double radius = 30;
-const double g = 30; // Lorentz factor, gamma
+const double radius = 1e6;
+const double g = 100; // Lorentz factor, gamma
 const double omega_c = g * g * g / radius;
 
 const double v = sqrt(1 - 1 / (g * g));
@@ -14,7 +14,7 @@ const double v = sqrt(1 - 1 / (g * g));
 // число точек для вычисления интеграла
 //const long n = 5000;
 
-const double a = 0.2 * omega_c; // amplitude of the walk function
+const double a = 0.1 * omega_c; // amplitude of the walk function
 double walk_f(double x) {
     double r = (double) rand() / (double) RAND_MAX;
     double y = x + a * (2 * r - 1);
@@ -73,23 +73,30 @@ double target_f(double omega) {
         pm_state = pm_rng(pm_state);
         double phi = phim * (2 * (double) pm_state / (double) pm_randmax - 1);
         complex<double> i(0,1);
-        c1 += sin(phi) * exp(-i * omega * radius * (phi - v * sin(phi)));
+        c1 += (phi) * exp(-i * omega * radius * (phi - v * sin(phi)));
     }
     double res;
+    if (omega < omega_c) {
+        res = norm(c1 * phim / (double) n);
+    } else {
+        res = 0;
+    }
+    /*
     if (abs(c1) > 0 * phim * sqrt(n)) {
         res = norm(c1 * phim / (double) n);
     } else {
         res = 0;
     }
+    */
     return res;
 }
 
 extern "C" {
 // random numbers generated with metropolis algorithm
 double* rnd(size_t n) {
-    srand(1235);
+    srand(123);
     double* x = new double[n];
-    x[0] = 0.3 * omega_c;
+    x[0] = omega_c;
     for (size_t i = 1; i < n; ++i) {
         double candidate = walk_f(x[i - 1]);
         double acceptance = target_f(candidate) / target_f(x[i - 1]);
