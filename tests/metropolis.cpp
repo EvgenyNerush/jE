@@ -5,6 +5,7 @@
 
 #include <iostream>
 #include <vector>
+#include <tuple>
 #include <stdexcept>
 #include <cmath>
 
@@ -29,7 +30,28 @@ double target_f(double x){
     }
 }
 
-// walk function of (rng_state, x)
+// Element-wise multiplication of two tuples up to the given index, e.g. ew_mult((1, 2, 3), (4, 5,
+// 6), 1) changes the first tuple to (4, 10, 3). One need partial specialization to end-up the
+// recursion, but partial specialization is not allowed for functions. Hence ew_mult is a functor.
+// (See, in russian, http://artlang.net/post/c++11-obkhod-elementov-kortezhe-std-tuple/)
+template<size_t i, typename... Ts>
+struct ew_mult {
+void f(std::tuple<Ts...>& x, const std::tuple<Ts...>& y) {
+    std::get<i>(x) *= std::get<i>(y);
+    ew_mult<i - 1, Ts...> m();
+    m.f(x, y);
+}
+};
+//
+// Variant for i = 0, to end-up the recursion
+template<typename... Ts>
+struct ew_mult<0, Ts...> {
+void f(std::tuple<Ts...>& x, const std::tuple<Ts...>& y) {
+    std::get<0>(x) *= std::get<0>(y);
+}
+};
+
+// Simple walk function of (rng_state, x)
 std::pair<uint64_t, double> walk_f(std::pair<uint64_t, double> rx) {
     uint64_t r = pm_rng(rx.first);
     double d = to_floating_01<double>(r);
@@ -80,6 +102,13 @@ std::vector<double> metropolis( double target_f(double)
 }
 
 int main() {
+    std::tuple<int, int, int> x(1,2,3);
+    std::tuple<int, int, int> y(4,5,6);
+    ew_mult<1, int, int, int> m();
+    //m.f(x,y);
+    std::cout << std::get<0>(x) << '\n';
+    std::cout << std::get<1>(x) << '\n';
+    std::cout << std::get<2>(x) << '\n';
     size_t n = 16000000; // should be much less than pm_randmax
     double acceptable_accuracy = 10 / sqrt(static_cast<double>(n));
     std::vector<double> xs = metropolis(target_f, n, walk_f, std::make_pair(12345, 0.5), 123);
