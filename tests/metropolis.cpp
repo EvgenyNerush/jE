@@ -4,10 +4,11 @@
  */
 
 #include <iostream>
-#include <vector>
-#include <tuple>
 #include <stdexcept>
 #include <cmath>
+#include <vector>
+#include <tuple>
+#include <functional>
 
 // Park--Miller RNG
 const uint64_t pm_randmax = 0x7FFFFFFFull; // approx 2*10^9
@@ -30,26 +31,51 @@ double target_f(double x){
     }
 }
 
-// Element-wise multiplication of two tuples up to the given index, e.g. ew_mult((1, 2, 3), (4, 5,
-// 6), 1) changes the first tuple to (4, 10, 3). One need partial specialization to end-up the
-// recursion, but partial specialization is not allowed for functions. Hence ew_mult is a functor.
-// (See, in russian, http://artlang.net/post/c++11-obkhod-elementov-kortezhe-std-tuple/)
+// Element-wise operation on two tuples up to the given index, e.g. zipWith<1, (*)>((1, 2, 3), (4,
+// 5, 6)) changes the first tuple to (4, 10, 3). One need partial specialization to end-up the
+// recursion, but partial specialization is not allowed for functions. Hence zipWith is a C++
+// functor.  (See, in Russian, http://artlang.net/post/c++11-obkhod-elementov-kortezhe-std-tuple/)
 template<size_t i, typename... Ts>
-struct ew_mult {
-void f(std::tuple<Ts...>& x, const std::tuple<Ts...>& y) {
-    std::get<i>(x) *= std::get<i>(y);
-    ew_mult<i - 1, Ts...> m();
-    m.f(x, y);
-}
+struct zipWith {
+    void operator()( auto f
+             ,       std::tuple<Ts...>& x
+             , const std::tuple<Ts...>& y) {
+        std::get<i>(x) = f( std::get<i>(x), std::get<i>(y) );
+        zipWith<i - 1, Ts...> z;
+        z(f, x, y);
+    }
 };
-//
+
 // Variant for i = 0, to end-up the recursion
 template<typename... Ts>
-struct ew_mult<0, Ts...> {
-void f(std::tuple<Ts...>& x, const std::tuple<Ts...>& y) {
-    std::get<0>(x) *= std::get<0>(y);
-}
+struct zipWith<0, Ts...> {
+    void operator()( auto f
+             ,       std::tuple<Ts...>& x
+             , const std::tuple<Ts...>& y) {
+        std::get<0>(x) = f( std::get<0>(x), std::get<0>(y) );
+    }
 };
+
+// This function gets a random-number generator *rng* (e.g, void function(uint64_t& rng_state)), an
+// amplitute *a* and a method *m* (which produces *dx* from *rng_state* and *a*), and returns a
+// walk function, which for a given pair (rng_state, x) advances the *rng_state* and yields x = x +
+// dx. Here (+), *m* and advance of *rng_state* are called for every element of *x* if *x* and *a*
+// are tuples. Note that the walk function should be symmetric in the metropolis algorithm that
+// constrains the choose of *m*.
+template<typename R, typename... Ts>
+std::function< void( std::pair<R, std::tuple<Ts...>>& ) >
+make_walk_f( std::function<void (R&)> rng
+           , std::tuple<Ts...> a
+           , auto m) {
+    return [=](std::pair<R, std::tuple<Ts...>>& rx){
+        auto f = [&rx, rng, m](auto elem_a, auto elem_x){
+            rng(rx.first);
+            return elem_x + m(rx.first, elem_a);
+        };
+        zipWith<std::tuple_size<std::tuple<Ts...>>::value - 1, double> z;
+        z(f, rx.second, a);
+    };
+}
 
 // Simple walk function of (rng_state, x)
 std::pair<uint64_t, double> walk_f(std::pair<uint64_t, double> rx) {
@@ -58,6 +84,22 @@ std::pair<uint64_t, double> walk_f(std::pair<uint64_t, double> rx) {
     //std::cout << rx.second << '\t' << 0.5 * (2 * d - 1) << '\n';
     return std::make_pair(r, rx.second + 0.5 * (2 * d - 1));
 }
+
+// The same simple walk function obtained from *make_walk_function*
+//std::tuple<double> a = make_tuple(0.1)
+double m(uint64_t r, double a) {
+    return a * (2 * to_floating_01<double>(r) - 1);
+}
+void myrng(uint64_t& r) {
+    pm_rng(r);
+}
+//std::function<void(std::pair<uint64_t, double>&)> alt_walk_f
+auto alt_walk_f
+    = make_walk_f( //[](uint64_t& r){ pm_rng(r); }
+            std::function<void(uint64_t&)>(myrng)
+                 , std::make_tuple(0.1)
+                 //, [](uint64_t r, double a){ return a * (2 * to_floating_01<double>(r) - 1); } );
+                 , m );
 
 double mean_x_pow(std::vector<double> xs, int pw){
     double acc = 0;
@@ -101,11 +143,15 @@ std::vector<double> metropolis( double target_f(double)
     return x;
 }
 
+int mult(int a, int b) {
+    return a * b;
+}
+
 int main() {
     std::tuple<int, int, int> x(1,2,3);
     std::tuple<int, int, int> y(4,5,6);
-    ew_mult<1, int, int, int> m();
-    //m.f(x,y);
+    zipWith<1, int, int, int> z;
+    z(mult, x, y);
     std::cout << std::get<0>(x) << '\n';
     std::cout << std::get<1>(x) << '\n';
     std::cout << std::get<2>(x) << '\n';
