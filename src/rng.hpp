@@ -9,7 +9,7 @@
  */
 const uint64_t pm_randmax = 0x7FFFFFFFull; // 
 
-/** Park--Miller RNG
+/** Park--Miller random number generator
  */
 void pm_rng(uint64_t& r) {
     r = 48271ull * r % pm_randmax;
