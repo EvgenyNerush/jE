@@ -15,17 +15,18 @@
 
 /**
  * This function places the bin boundaries such that the number of particles is @p n in every bin,
- * (thus <tt> N % n </tt> particles are dropped from the consideration, where <tt> N = xs.size() </tt>
- * the overall number of particles). The positions of the leftmost and rightmost boundaries are slightly shifted from minimum and
- * maximum of considered x values such that for all the bins the distribution function @f$ f @f$ can be
- * computed from the position of the left and rignt bin boundaries @f$ b_l @f$ and @f$ b_r @f$ as
+ * (thus <tt> N % n </tt> particles are dropped from the consideration, where <tt> N = xs.size()
+ * </tt> the overall number of particles). The positions of the leftmost and the rightmost
+ * boundaries are slightly shifted from minimum and maximum of the considered @p x values such that
+ * for all the bins the distribution function @f$ f @f$ can be computed from the position of the
+ * left and the rignt bin boundaries @f$ b_l @f$ and @f$ b_r @f$ as
  * @f\[
  *     f = \frac{n}{b_r - b_l}.
  * @f\]
  * The complexity of this function is @f$ O(N \log N) @f$ (operations).
  * @param n  desired number of particles per bin
  * @param xs coordinates of particles
- * @return position of the bins boundaries
+ * @return positions of the bin boundaries
  */
 std::vector<double> histogram_1D(size_t n, const std::vector<double>& xs){
     std::vector<double> bs; // boundaries of the bins
