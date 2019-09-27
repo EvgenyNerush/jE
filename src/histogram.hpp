@@ -11,6 +11,7 @@
  */
 
 #include <vector>
+#include <algorithm>
 
 /**
  * This function places the bin boundaries such that the number of particles is @p n in every bin,
@@ -29,7 +30,7 @@
 std::vector<double> histogram_1D(size_t n, const std::vector<double>& xs){
     std::vector<double> bs; // boundaries of the bins
 
-    if (ys.size() > 1) { // for a single point the bin width cann't be found
+    if (xs.size() > 1) { // for a single point the bin width cann't be found
         std::vector<double> ys(xs.size()  - xs.size() %  n);
         std::copy(xs.cbegin(), xs.cend() - xs.size() %  n, ys.begin());
 
@@ -38,24 +39,29 @@ std::vector<double> histogram_1D(size_t n, const std::vector<double>& xs){
         bs.push_back(ys[0]);
 
         size_t in = 0;
-        for (size_t i = 0; i < ys.size() - 1){
+        for (size_t i = 0; i < ys.size() - 1; ++i) {
             in += 1;
             if (in == n) {
                 in = 0;
-                bs.push_back(0.5 * (ys[i] + ys[i - 1]));
+                bs.push_back(0.5 * (ys[i] + ys[i + 1]));
             }
         }
         // the rightmost boundary
         bs.push_back(ys[ys.size() - 1]);
 
-        // correction of the leftmost and the rightmost boundaries
-        if        (bs.size() > 2) {
-        } else if (bs.size() == 2) {
+        /*
+         * correction of the leftmost and the rightmost boundaries
+         */
+        if (bs.size() == 2) { // left and right boundaries exactly at the particle positions
+            double d = (bs[1] - bs[0]) / static_cast<double>(n - 1);
+            bs[0] -= 0.5 * d;
+            bs[1] += 0.5 * d;
+        } else if (bs.size() > 2) {
+            double d1 = (bs[1] - bs[0]) / (static_cast<double>(n) - 0.5);
+            double d2 = (bs[bs.size() - 1] - bs[bs.size() - 2]) / (static_cast<double>(n) - 0.5);
+            bs[0]             -= 0.5 * d1;
+            bs[bs.size() - 1] += 0.5 * d2;
         }
-
-                    assert qwe!
-                    correction!
-
     }
     return bs;
 }
