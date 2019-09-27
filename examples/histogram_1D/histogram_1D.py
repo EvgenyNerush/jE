@@ -27,7 +27,7 @@ xs_pointer = lib.points()
 bs_pointer = lib.bins()
 
 xs = ctl.as_array(xs_pointer, shape = (n,))  # coordinates of the points generated with Metropolis
-                                             # algorithm
+                                            # algorithm
 bs = ctl.as_array(bs_pointer, shape = (nb,)) # coordinates of the bin boundaries
 
 # Distribution function computation #
@@ -44,7 +44,7 @@ plt.plot( z, 0.5 * n / hist_bins / np.sqrt(z) , '-', color = 'darkorange'
         , label = r'$1 / \sqrt{x}$')
 plt.plot(x_vals, f_vals, '.', color = 'royalblue', label = 'histogram_1D')
 plt.xlim(0, 1)
-plt.ylim(0, 2500000 / hist_bins)
+plt.ylim(0, 3e8 / hist_bins)
 plt.legend()
 plt.xlabel(r'$x$')
 plt.ylabel(r'$dN/dx$, a.u.')

@@ -8,8 +8,6 @@
 
 using namespace std;
 
-size_t n = 200'000; // 16'000'000;
-
 double td(double x){
     if (x > 0 and x <= 1) {
         return 1 / sqrt(x);
@@ -32,9 +30,9 @@ vector<double> xs =
                                              (proposal_density)
                                            , make_pair(54321ul, 0.5)
                                            , td
-                                           , n);
+                                           , 16'000'000);
 
-vector<double> bs = histogram_1D(20'000, xs);
+vector<double> bs = histogram_1D(1'600'000, xs);
 
 extern "C" {
 size_t get_n() {
@@ -47,8 +45,8 @@ size_t get_nb() {
 
 // random points generated with metropolis algorithm
 double* points() {
-    double* ys = new double[n];
-    for (size_t i = 0; i < n; ++i) {
+    double* ys = new double[xs.size()];
+    for (size_t i = 0; i < xs.size(); ++i) {
         ys[i] = xs[i];
     }
     return ys;
@@ -56,8 +54,8 @@ double* points() {
 
 // boundaries of bins for the given random points
 double* bins() {
-    double* ys = new double[n];
-    for (size_t i = 0; i < n; ++i) {
+    double* ys = new double[bs.size()];
+    for (size_t i = 0; i < bs.size(); ++i) {
         ys[i] = bs[i];
     }
     return ys;
