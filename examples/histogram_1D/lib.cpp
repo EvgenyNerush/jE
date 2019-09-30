@@ -30,9 +30,9 @@ vector<double> xs =
                                              (proposal_density)
                                            , make_pair(54321ul, 0.5)
                                            , td
-                                           , 16'000'000);
+                                           , 1000);
 
-vector<double> bs = histogram_1D(1'600'000, xs);
+vector<double> bs = histogram_1D(100, xs);
 
 extern "C" {
 size_t get_n() {
