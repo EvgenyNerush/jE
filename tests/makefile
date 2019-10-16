@@ -1,12 +1,17 @@
-SRC := ../src/metropolis.hpp ../src/rng.hpp ../src/histogram.hpp
+SRC := ../src/metropolis.hpp ../src/rng.hpp ../src/histogram.hpp ../src/synchrotron.hpp
+BIN := assert metropolis synchrotron
+FLAGS := -O3 -ffast-math -std=c++17 -Wall -Wpedantic 
 
-all: assert metropolis
+all: $(BIN)
 
 assert: %: %.cpp $(SRC)
-	g++ -g -Wall -Wpedantic assert.cpp -o assert && ./assert
+	g++ -g -Wall -Wpedantic $< -o $@ && ./$@
 
 metropolis: %: %.cpp $(SRC)
-	g++ -O3 -ffast-math -Wall -Wpedantic metropolis.cpp -o metropolis && ./metropolis
+	g++ $(FLAGS) $< -o $@ && ./$@
+
+synchrotron: %: %.cpp $(SRC)
+	g++ $(FLAGS) $< -o $@ && ./$@
 
 clean:
-	rm -I assert metropolis
+	rm -I $(BIN)

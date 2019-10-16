@@ -1,3 +1,5 @@
+/* A collection of assertions */
+
 #include <cassert>
 #include <vector>
 #include <iostream>

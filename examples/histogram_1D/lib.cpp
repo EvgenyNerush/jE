@@ -26,8 +26,7 @@ vector<double> xs =
     metropolis<double, uint64_t, uint64_t> ( pm_rng
                                            , 12345ul
                                            , pm_cast_to_01
-                                           , function<void(pair<uint64_t, double>&)>
-                                             (proposal_density)
+                                           , proposal_density
                                            , make_pair(54321ul, 0.5)
                                            , td
                                            , 1000);
