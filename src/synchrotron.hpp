@@ -111,12 +111,11 @@ double jackson1483(double b, double gamma_e, double theta, double omega) {
  *     C_m = - \frac{e}{2} \sqrt{ \frac{\pi}{\hbar \omega_m V} } \int_t \mathbf{v p}_m \exp \left[
  *     i \omega_m t - i \mathbf{k}_m \mathbf{r}(t) \right] \, dt.
  * @f]
- * This formula is used here to compute @f$ C_m @f$ with midpoint rule of integration (very similar to the
- * trapezoidal rule). Note that the product @f$ V |C_m|^2 @f$ do not contain the volume of the
- * virtual box.
- * @param a       value which shrinks/enlarges the limits of integration, i.e. the ratio of the
- *                upper (lower) limit of integration to the "transverse" scale of the exponent to
- *                integrate, @f$ \tau_\perp = (m c \gamma_e / e B) (6 \pi c / r \omega)^{1/3} @f$.
+ * This formula is used here to compute @f$ C_m @f$ with midpoint rule of integration (very similar
+ * to the trapezoidal rule), however, additional attenuation of the current is added, @f$ \propto
+ * \exp[-8 (t / \tau)^8 ] @f$, to avoid emission caused by the current on and off. Note that the
+ * product @f$ V |C_m|^2 @f$ do not contain the volume of the virtual box.
+ * @param tau     the limits of the numerical integration are [-tau, tau]
  * @param n       the number of points for numerical integration; use #emission_probability_s if
  *                not know what value to choose
  * @param b       the normalized magnetic field strength
@@ -128,40 +127,49 @@ double jackson1483(double b, double gamma_e, double theta, double omega) {
  *                polarization in the plane perpendicular to the normal vector
  * @param omega   > 0, normalized frequency of the emitted photon
  */
-double emission_probability(double a, long long n,
-        double b, double gamma_e, double theta, bool p, double omega) {
-    // one of two scales of the exponent which we integrate
-    double tau_perp = gamma_e * pow(6 * M_PI / (omega * r(gamma_e)), 1/3.0);
-    // the limits of the numerical integration are [-tau_m, tau_m]
-    double tau_m = a * tau_perp;
+double emission_probability(double tau, long long n, double b, double gamma_e, double theta,
+        bool p, double omega) {
     // step of the integration
-    double dt = 2 * tau_m / static_cast<double>(n);
-    // c_m
+    double dt = 2 * tau / static_cast<double>(n);
+    // C_m
     std::complex<double> c = 0i;
     if (p == true) {
         for (long long int j = 0; j < n; ++j) {
-            double t = -tau_m + dt * (0.5 + static_cast<double>(j));
+            double t = -tau + dt * (0.5 + static_cast<double>(j));
             c -= dt * r(gamma_e) / gamma_e
                 * sin(t / gamma_e) * exp( 1i * omega * t
-                                        - 1i * omega * r(gamma_e) * sin(t / gamma_e) * cos(theta));
+                                        - 1i * omega * r(gamma_e) * sin(t / gamma_e) * cos(theta)
+                                        - pow(t / tau, 8));
         }
     } else {
         for (long long int j = 0; j < n; ++j) {
-            double t = -tau_m + dt * (0.5 + static_cast<double>(j));
+            double t = -tau + dt * (0.5 + static_cast<double>(j));
             c += dt * r(gamma_e) / gamma_e * sin(theta)
                 * cos(t / gamma_e) * exp( 1i * omega * t
-                                        - 1i * omega * r(gamma_e) * sin(t / gamma_e) * cos(theta));
+                                        - 1i * omega * r(gamma_e) * sin(t / gamma_e) * cos(theta)
+                                        - pow(t / tau, 8));
         }
     }
     return M_PI * alpha / (4 * omega) * norm(c);
 }
 
 /**
- * Simplified version of #emission_probability, where @p a and @p n are set to ensure the accuracy
- * of the emitted spectrum #jackson1483_num of about 1%.
+ * Simplified version of #emission_probability, where @p tau and @p n are set to yield the spectrum
+ * #jackson1483_num which differs from the theoretical one by less or about than 2% of the maximal
+ * value of the spectrum.
  */
 double emission_probability_s(double b, double gamma_e, double theta, bool p, double omega) {
-    return emission_probability(5, 10'000, b, gamma_e, theta, p, omega);
+    // "longitudinal" scale of the exponent which is integrated in #emission_probability
+    double tau_parallel = 2 * M_PI / (omega * (theta * theta + 1 / (gamma_e * gamma_e)));
+    // "transverse" scale of the exponent which is integrated in #emission_probability
+    double tau_perp = gamma_e * pow(6 * M_PI / (omega * r(gamma_e)), 1/3.0);
+    // tau = l * tau_perp, where tau is the parameter of #emission_probability
+    double l = 30;
+    // the estimate of half-period of the exponent oscillations at t = tau
+    double osc_period = 1 / (1 / tau_parallel + 3 * l * l / tau_perp);
+    // n, the parameter of #emission_probability
+    long long int n = llround(3 * l * tau_perp / osc_period);
+    return emission_probability(l * tau_perp, n, b, gamma_e, theta, p, omega);
 }
 
 /**
