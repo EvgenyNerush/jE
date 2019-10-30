@@ -1,19 +1,23 @@
 /* Let's check that the synchrotron spectrum computed numerically with #emission_probability_s from
- * ../src/synchrotron.hpp coincides with classical synchrotron formula.
+ * ../src/radiation.hpp coincides with the classical synchrotron formula.
+ * This test takes about 0.9 second with Xeon X5550 processor.
  */
 
 #include <iostream>
 #include <vector>
-#include "../src/synchrotron.hpp"
+#include <chrono>
+#include "../src/radiation.hpp"
 
 using namespace std;
+using namespace std::chrono;
 
 int main() {
     // error relative to value of the maximum of the synchrotron spectrum
-    double accepted_error = 2e-2;
+    double accepted_error = 2e-5;
     double gamma_e = 1'000;
     double b = 1e-4;
     double oc = omega_c(gamma_e);
+    steady_clock::time_point t1 = steady_clock::now();
     // approximate value of the maximum of the synchrotron spectrum
     double max = jackson1483(b, gamma_e, 0, 0.42 * oc);
 
@@ -41,11 +45,12 @@ int main() {
             errs.push_back(err);
         }
     }
+    steady_clock::time_point t2 = steady_clock::now();
 
     if (acc) {
-        cout << "synchrotron test: \x1b[32mpassed\x1b[0m\n";
+        cout << "synchrotron_radiation test: \x1b[32mpassed\x1b[0m\n";
     } else {
-        cout << "synchrotron test: \x1b[1;31mfailed\x1b[0m\n";
+        cout << "synchrotron_radiation test: \x1b[1;31mfailed\x1b[0m\n";
         cout << "accepted error = " << accepted_error << '\n';
         int i = 0;
         for (auto theta: thetas) {
@@ -60,5 +65,8 @@ int main() {
             }
         }
     }
+
+    duration<double> time_span = duration_cast<duration<double>>(t2 - t1);
+    cout << "test takes " << time_span.count() << " seconds\n";
     return 0;
 }

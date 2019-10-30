@@ -6,6 +6,7 @@
 #include <random>
 #include "../src/rng.hpp"
 #include "../src/histogram.hpp"
+#include "../src/radiation.hpp"
 
 using namespace std;
 
@@ -41,6 +42,15 @@ int main(){
         vector<double> xs2({6, 4, 2, 0});
         vector<double> bs3({-1, 3, 7});
         assert(histogram_1D(2, xs2) == bs3);
+    }
+
+    { // Test of trapezoidal rule of integration
+        vector<double> t_nodes({0, 1, 2});
+        auto f1 = function<double(double)>( [](double _) { return 1; } );
+        assert(trap_rule(f1, t_nodes) == 2);
+
+        auto f2 = function<double(double)>( [](double t) { return t; } );
+        assert(trap_rule(f2, t_nodes) == 2);
     }
 
     cout << "assert.cpp: \x1b[32mpassed\x1b[0m\n";
