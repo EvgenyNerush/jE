@@ -6,6 +6,7 @@
 
 #include <complex>
 #include <cmath>
+#include <optional>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/reverse.hpp>
@@ -37,6 +38,50 @@ using namespace std::literals::complex_literals;
  * The fine structure constant, CODATA 2018 recommended value
  */
 const double alpha = 1 / 137.035999084;
+
+/**
+ * <a href = "https://en.wikipedia.org/wiki/Bisection_method">Bisection method</a> to find the root
+ * of the equation @f$ f(x) = 0 @f$ on the interval @f$ [x_a, x_b] @f$.
+ * @param  f  @f$ f @f$, a continuous function
+ * @param  xa @f$ x_a @f$
+ * @param  xb @f$ x_b @f$
+ * @param  n  the number of the iterations; the method error is less than @f$ (x_b - x_a) / 2^n @f$
+ * @return    <tt> std::nullopt </tt> if the root is out of @f$ [x_a, x_b] @f$, (<tt> std::optional
+ *            </tt> of) @f$ x_a @f$ if @f$ f(x_a) = 0 @f$, @f$ x_b @f$ if @f$ f(x_b) = 0 @f$, @f$
+ *            (x_a + x_b) / 2 @f$ if @p n < 1, and approximate root value otherwise
+ */
+std::optional<double> bisection( std::function<double(const double&)> f
+                             , double xa
+                             , double xb
+                             , int    n
+                             ) {
+    double f1 = f(xa);
+    double f2 = f(xb);
+    if (f1 * f2 > 0) {
+        return std::nullopt;
+    } else if (f1 == 0) {
+        return std::optional(xa);
+    } else if (f2 == 0) {
+        return std::optional(xb);
+    } else { // f1 * f2 < 0
+        double x1 = xa;
+        double x2 = xb;
+        double x = 0.5 * (x1 + x2);
+        double v = f(x);
+        for (int i = 0; i < (n - 1) and v != 0; ++i) {
+            if (v * f1 < 0) {
+                x2 = x;
+                f2 = v;
+            } else { // v * f2 < 0
+                x1 = x;
+                f1 = v;
+            }
+            x = 0.5 * (x1 + x2);
+            v = f(x);
+        }
+        return std::optional(x);
+    }
+}
 
 /**
  * Trapezoidal rule of integration.
@@ -189,8 +234,8 @@ double jackson1483(double b, double gamma_e, double theta, double omega) {
 /**
  * Probability of the photon emission in classical synchrotron process, computed numerically with
  * #c_m. The integration parameters (timestep etc.) are set to yield the spectrum #jackson1483_num
- * which differs from the theoretical one by less or about than 2% of the maximal value of the
- * spectrum.
+ * whose relative difference from the theoretical one is less than 1% up to frequences/angles where
+ * photon emission is negligibly small.
  * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
  * @param gamma_e the electron Lorentz factor
  * @param p       the polarization of the emitted wave: <tt> p = true </tt> means polarization
@@ -205,63 +250,69 @@ double synchrotron_emission_probability( double b
                                        , bool   p
                                        , double theta
                                        , double omega) {
-    // //
-    // "longitudinal" scale of the exponent which is integrated in #emission_probability
-    double tau_parallel = 2 * M_PI / (omega * (theta * theta + 1 / (gamma_e * gamma_e)));
-    // "transverse" scale of the exponent which is integrated in #emission_probability
-    double tau_perp = gamma_e * pow(6 * M_PI / (omega * r(gamma_e)), 1/3.0);
-    // tau = l * tau_perp, where tau is the parameter of #emission_probability
-    double l = 30;
-    // the estimate of half-period of the exponent oscillations at t = tau
-    double osc_period = 1 / (1 / tau_parallel + 3 * l * l / tau_perp);
-    // n, the parameter of #emission_probability
-    long long int n = llround(0.5 * 3 * l * tau_perp / osc_period);
-    // Here C_m is computed on two intervals, [-tb, -ta], [ta, tb]
-    double ta = 0;
-    double tb = l * tau_perp;
+    // the exponent in the integral is approximately equal to exp(i phi(t))
+    double tau_parallel = 4 * M_PI / (omega * (theta * theta + 1 / (gamma_e * gamma_e)));
+    double tau_perp     = gamma_e * pow(12 * M_PI / (omega * r(gamma_e)), 1/3.0);
+    auto phi = [=](double t){ return 2 * M_PI * (t / tau_parallel + pow(t / tau_perp, 3)); };
+    // we integrate approximately on +-l periods of the exponent
+    int l = 5;
+    auto f = std::function<double(const double&)>(
+                 [=](const double& t) {
+                      return phi(t) - 2 * M_PI * static_cast<double>(l);
+                 }
+             );
+
+    double tb;
+    if (tau_perp < tau_parallel) {
+        tb = tau_perp * pow(static_cast<double>(l), 1/3.0);
+    } else {
+        tb = tau_parallel * static_cast<double>(l);
+    } //... thus the root of f(t) = 0 is in [0, tb]
+    int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
+    tb = bisection(f, 0, tb, n_bisections).value();
+    double ta = -tb;
+
+    // the estimate of the period of the exponent oscillations (T = 2 \pi / (d\phi/dt)) at t = tb
+    double osc_period = 1 / (1 / tau_parallel + 3 * tb * pow(tb / tau_perp, 2));
+    // number of point for the exponent integration
+    long long int nt = llround(3 * (tb - ta) / osc_period);
     // step of the integration
-    double dt = (tb - ta) / static_cast<double>(n);
-    auto t_nodes  = ranges::v3::iota_view(0, n)
+    double dt = (tb - ta) / static_cast<double>(nt - 1);
+    auto t_nodes  = ranges::v3::iota_view(0, nt)
                   | ranges::v3::views::transform(
                         [=](long long i){ return ta + dt * static_cast<double>(i); }
                     );
-    auto t_nodes_ = t_nodes
-                  | ranges::v3::views::transform( [](double t) { return -t; } )
-                  | ranges::v3::views::reverse;
 
+    // for c_m function
     auto nr = std::function<double(double)>(
         [=](double t) {
             return r(gamma_e) * sin(t / gamma_e) * cos(theta);
         }
     );
 
+    std::complex<double> c;
     if (p == true) {
         auto pv = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_e) / gamma_e * sin(t / gamma_e)
-                    * exp( -8 * pow((abs(t) - ta) / (tb - ta), 8) );
-                    // note that artificial attenuation is added here to avoid emission caused by
-                    // the current on and off
+                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
+                                                  // to avoid emission caused by the current on and
+                                                  // off
             }
         );
-        std::complex<double> c = 0;
-        c += c_m( pv, nr, t_nodes,  omega );
-        c += c_m( pv, nr, t_nodes_, omega);
-        return norm(c);
+        c = c_m(pv, nr, t_nodes, omega);
     } else {
         auto pv = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_e) / gamma_e * sin(theta) * cos(t / gamma_e)
-                    * exp( -8 * pow((abs(t) - ta) / (tb - ta), 8) );
-                    // note that artificial attenuation is added here to avoid emission caused by
-                    // the current on and off
+                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
+                                                  // to avoid emission caused by the current on and
+                                                  // off
             }
         );
-        std::complex<double> c = 0;
-        c += c_m( pv, nr, t_nodes,  omega );
-        c += c_m( pv, nr, t_nodes_, omega);
-        return norm(c);
+        c = c_m(pv, nr, t_nodes, omega);
     }
+    return norm(c);
 }
 
 /**

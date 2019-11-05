@@ -53,6 +53,18 @@ int main(){
         assert(trap_rule(f2, t_nodes) == 2);
     }
 
+    { // Bisection to find the roots of f(x) = 0
+        auto f = std::function<double(const double&)>( [](double x){ return x * x - 1; } );
+        assert(bisection(f, -0.5, 0.5, 1) == std::nullopt);
+        assert(bisection(f, -1, 0, 0).value() == -1);
+        assert(bisection(f,  0, 1, 0).value() ==  1);
+        assert(bisection(f,  0, 4, 0).value() ==  2);
+        assert(bisection(f,  0, 4, 1).value() ==  2);
+        assert(bisection(f,  0, 4, 2).value() ==  1);
+        assert(bisection(f,  0, 4, 3).value() ==  1);
+        assert(abs(bisection(f, 0, 3, 10).value() - 1) < 3.0 / pow(2, 10));
+    }
+
     cout << "assert.cpp: \x1b[32mpassed\x1b[0m\n";
     return 0;
 }
