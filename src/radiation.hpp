@@ -345,18 +345,6 @@ double jackson1483_num(double b, double gamma_e, double theta, double omega) {
         * ( synchrotron_emission_probability(b, gamma_e, true,  theta, omega)
           + synchrotron_emission_probability(b, gamma_e, false, theta, omega));
 }
-/**
- * The approximation for the real part of the index of refraction the exact expression for which was taken from [Thomas Erber, High-
- * Energy Electromagnetic Conversion Processes in Intense Magnetic Fields, reviews of modern physics, vol 38, num 4, oct. 1966]
- * The expression depends on @f$ \chi_{ph} = \omega * H/H_{ph} @f$, where H - magnetic field and @f$ \omega @f$ is the photon
- * angular frequency.
- * @param h        the normalized magnetic field strength
- * @param omega    the photon angular frequency
-*/
-long double index_n(double h, double omega) {
-    double chi = h * omega;
-    return 1.0 + (chi <= 2.0) * 0.22 * exp(1.3636 * chi*chi - 1.26 * pow(chi, 2.22)) + (chi > 2.0) * 0.365756 / pow(chi, 4.0/3.0);
-}
 
 /**
  * @}
@@ -494,6 +482,25 @@ double bks_emission_probability( std::function<double(double)> vp1
                * ( (1 + pow(epsilon_s / epsilon, 2))   * (norm(c1) + norm(c2))
                  + pow(omega / (epsilon * epsilon), 2) * norm(c3)
                  );
+}
+
+/**
+ * The real part of the vacuum refractive index in strong magnetic field @f$ B @f$, computed with
+ * the accuracy of about 2%. The exact expression for the refractive index can be found in [Thomas
+ * Erber, High- Energy Electromagnetic Conversion Processes in Intense Magnetic Fields, Reviews of
+ * modern physics, vol. 38, num. 4, oct. 1966].
+ * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
+ * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
+*/
+double vacuum_refractive_index( double b
+                              , double omega
+                              ) {
+    double chi = omega * b * b;
+    if (chi <= 2) {
+        return 1.0 + 0.22 * exp(1.3636 * chi * chi - 1.26 * pow(chi, 2.22));
+    } else {
+        return 1.0 + 0.365756 / pow(chi, 4.0/3.0);
+    }
 }
 
  /*

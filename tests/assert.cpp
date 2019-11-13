@@ -65,6 +65,6 @@ int main(){
         assert(abs(bisection(f, 0, 3, 10).value() - 1) < 3.0 / pow(2, 10));
     }
 
-    cout << "assert.cpp: \x1b[32mpassed\x1b[0m\n";
+    cout << "assertions: \x1b[32mpassed\x1b[0m\n";
     return 0;
 }
