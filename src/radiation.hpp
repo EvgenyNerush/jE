@@ -151,24 +151,24 @@ R trap_rule(std::function<R(double)> f, V t_nodes) {
  * This formula is used here to compute @f$ C_m @f$ with #trap_rule. To compute the emission
  * probability, use <tt> <a href = "https://en.cppreference.com/w/cpp/numeric/complex/norm"> norm
  * </a>(c_m) </tt>.
- * @param pv      the product of the mode polarization direction @f$ \mathbf{p} @f$ and the
+ * @param vp      the product of the mode polarization direction @f$ \mathbf{p} @f$ and the
  *                electron velocity @f$ \mathbf{v} @f$, as the function of @f$ t @f$.
- * @param nr      @f$ \mathbf{ n \cdot r }(t) @f$, with @f$ \mathbf{n} = \mathbf{k}_m / k_m @f$ and
- *                @f$ \mathbf{r}(t) @f$ the electron position
+ * @param nr      @f$ \mathbf{ n \cdot r }(t) @f$, with @f$ \mathbf{n} = c \mathbf{k}_m / \omega_m
+ *                @f$ and @f$ \mathbf{r}(t) @f$ the electron position
  * @param t_nodes values of @f$ t_0, t_1, t_2, ... @f$ used for the integral computation; this
  *                function can take @p t_nodes as @p range or @p view (from C++20 ranges) or as @p
  *                std::vector, with doubles within
  * @param omega   > 0, normalized frequency of the emitted photon, @f$ \omega_m @f$
  */
 template <typename V>
-std::complex<double> c_m( std::function<double(double)> pv
-                   , std::function<double(double)> nr
-                   , V t_nodes
-                   , double omega
+std::complex<double> c_m( std::function<double(double)> vp
+                        , std::function<double(double)> nr
+                        , V                             t_nodes
+                        , double                        omega
                    ) {
     auto f = std::function<std::complex<double>(double)>(
         [=](double t) {
-            return pv(t) *  exp( 1i * omega * ( t - nr(t) ) );
+            return vp(t) *  exp( 1i * omega * ( t - nr(t) ) );
         }
     );
     return sqrt(alpha * M_PI / (4 * omega)) * trap_rule(f, t_nodes);
@@ -257,10 +257,10 @@ double synchrotron_emission_probability( double b
     // we integrate approximately on +-l periods of the exponent
     int l = 5;
     auto f = std::function<double(const double&)>(
-                 [=](const double& t) {
-                      return phi(t) - 2 * M_PI * static_cast<double>(l);
-                 }
-             );
+        [=](const double& t) {
+             return phi(t) - 2 * M_PI * static_cast<double>(l);
+        }
+    );
 
     double tb;
     if (tau_perp < tau_parallel) {
@@ -278,10 +278,10 @@ double synchrotron_emission_probability( double b
     long long int nt = llround(3 * (tb - ta) / osc_period);
     // step of the integration
     double dt = (tb - ta) / static_cast<double>(nt - 1);
-    auto t_nodes  = ranges::v3::iota_view(0, nt)
-                  | ranges::v3::views::transform(
-                        [=](long long i){ return ta + dt * static_cast<double>(i); }
-                    );
+    auto t_nodes = ranges::v3::iota_view(0, nt)
+                 | ranges::v3::views::transform(
+                       [=](long long i){ return ta + dt * static_cast<double>(i); }
+                   );
 
     // for c_m function
     auto nr = std::function<double(double)>(
@@ -292,7 +292,7 @@ double synchrotron_emission_probability( double b
 
     std::complex<double> c;
     if (p == true) {
-        auto pv = std::function<double(double)>(
+        auto vp = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_e) / gamma_e * sin(t / gamma_e)
                     * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
@@ -300,9 +300,9 @@ double synchrotron_emission_probability( double b
                                                   // off
             }
         );
-        c = c_m(pv, nr, t_nodes, omega);
+        c = c_m(vp, nr, t_nodes, omega);
     } else {
-        auto pv = std::function<double(double)>(
+        auto vp = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_e) / gamma_e * sin(theta) * cos(t / gamma_e)
                     * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
@@ -310,7 +310,7 @@ double synchrotron_emission_probability( double b
                                                   // off
             }
         );
-        c = c_m(pv, nr, t_nodes, omega);
+        c = c_m(vp, nr, t_nodes, omega);
     }
     return norm(c);
 }
@@ -349,3 +349,153 @@ double jackson1483_num(double b, double gamma_e, double theta, double omega) {
 /**
  * @}
  */
+
+/**
+ * @defgroup bks_radiation Quasiclassical radiation module
+ * @brief General formulas from BKS theory with vacuum polarization taken into account
+ * @{
+ */
+
+/**
+ * Unity <tt>std::function</tt> of any number of arguments.
+ * @return 1
+ */
+template<typename... Types>
+auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
+
+/**
+ * Photon emission probability by an electron, @f$ W_m @f$, found in the framework of
+ * Baier-Katkov-Strakhovenko (BKS) quasiclassical theory, namely a sum of the emission
+ * probabilities for both photon polarizations, which are then averaged over the polarizations of
+ * the emitting electron. Here @f$ m @f$ designates the generalized mode number, and unit virtual
+ * box volume is assumed (@f$ V = 1 @f$, see #c_m for details).
+ *
+ *
+ * BKS theory gives the following expression for the energy radiated in unit frequency interval per
+ * unit solid angle, see Eq. () from [V.N. Baier and V.M. Katkov and V.M. Strakhovenko,
+ * Electromagnetic processes at high energies in oriented single crystals, World Scientific,
+ * Singapore, 1998], or see also Eq. (6) in the supplementary material of <a href =
+ * "https://doi.org/10.1038/s41467-018-03165-4">this paper</a>:
+ *
+ * @f[
+ *     \frac{d^2 I}{d\omega d\Omega} = \frac{e^2}{4 \pi^2} \left\{
+ *         \frac{ \varepsilon^2 + \varepsilon'^2 }{ 2 \varepsilon^2 }
+ *         \left| \int dt\, \frac{ \mathbf{n \times [(n - v) \times \dot v]} }
+ *                               { (1 - \mathbf{n v})^2 }
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
+ *         \right|^2
+ *       + \frac{ \omega^2 m^2 }{ 2 \varepsilon^4 }
+ *         \left| \int dt\, \frac{ \mathbf{n \dot v} }
+ *                               { (1 - \mathbf{n v})^2 }
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
+ *         \right|^2
+ *     \right\}
+ * @f]
+ * with @f$ \hbar = 1 @f$ and @f$ c = 1 @f$, @f$ \mathbf{n} = \mathbf{k} / \omega @f$, and @f$
+ * \varepsilon' = \varepsilon - \omega @f$, @f$ \omega' = \omega \varepsilon / \varepsilon' @f$.
+ * One can note that
+ * @f[
+ *     \frac{d}{dt} \frac{1}{1 - \mathbf{n v}}
+ *       = \frac{ \mathbf{n \dot v} }{ (1 - \mathbf{n v})^2 }, \quad
+ *     \frac{d}{dt} \frac{ \mathbf{ n \times [ n \times v ] } }{ 1 - \mathbf{n v} }
+ *       = \frac{ \mathbf{ n \times [(n - v) \times \dot v] } }{ (1 - \mathbf{n v})^2 },
+ *       \quad
+ *     \frac{d}{dt} \exp [ i \omega' ( t - \mathbf{n r} ) ]
+ *       = i \omega' (1 - \mathbf{n v}) \exp [ i \omega' ( t - \mathbf{n r} ) ].
+ * @f]
+ * Hence, integrating by parts one get
+ * @f[
+ *     \frac{d^2 I}{d\omega d\Omega} = \frac{e^2 \omega'^2}{4 \pi^2} \left\{
+ *         \frac{ \varepsilon^2 + \varepsilon'^2 }{ 2 \varepsilon^2 }
+ *         \sum_\mathbf{p}
+ *         \left| \int dt\, \mathbf{v p}
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
+ *         \right|^2
+ *       + \frac{ \omega^2 m^2 }{ 2 \varepsilon^4 }
+ *         \left| \int dt\,
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
+ *         \right|^2
+ *     \right\},
+ * @f]
+ * where the product @f$ \mathbf{n \times [n \times v]} @f$ is rewritten using @f$ \mathbf{v p}_1
+ * @f$ and @f$ \mathbf{v p}_2 @f$. Then the relation between the emission probability and the
+ * distribution of the emitted energy (see #jackson1483_num) yields
+ * @f[
+ *     W_m = \frac{e^2 \pi \omega'^2}{4 \omega^3 V} \left\{
+ *         \frac{ (\varepsilon^2 + \varepsilon'^2) }{ 2 \varepsilon^2 }
+ *         \sum_\mathbf{p}
+ *         \left| \int dt\, \mathbf{v \cdot p}
+ *                \exp [ i \omega' ( t - \mathbf{n \cdot r} ) ]
+ *         \right|^2
+ *       + \frac{ \omega^2 m^2 }{ 2 \varepsilon^4 }
+ *         \left| \int dt\,
+ *                \exp [ i \omega' ( t - \mathbf{n \cdot r} ) ]
+ *         \right|^2
+ *     \right\}.
+ * @f]
+ * This formula is used here in the computations, together with #trap_rule.
+ * @param vp1     the product of the mode polarization direction @f$ \mathbf{p}_1 @f$ and the
+ *                electron velocity @f$ \mathbf{v} @f$, as the function of @f$ t @f$
+ * @param vp2     the product @f$ \mathbf{v p}_2 @f$, as function of @f$ t @f$
+ * @param nr      @f$ \mathbf{ n r }(t) @f$, with @f$ \mathbf{n} = \mathbf{k}_m / \omega_m @f$ and
+ *                @f$ \mathbf{r}(t) @f$ the electron position
+ * @param t_nodes values of @f$ t_0, t_1, t_2, ... @f$ used for the computation of the integrals;
+ *                this function can take @p t_nodes as @p range or @p view (from C++20 ranges) or
+ *                as @p std::vector, with doubles within
+ * @param epsilon the normalized initial electron energy, @f$ m c^2 \gamma_e / (\hbar / t_{rf}) =
+ *                \gamma_e / b @f$
+ * @param omega   > 0, frequency of the emitted photon, @f$ \omega_m @f$, normalized to the reverse
+ *                radiation formation time
+ */
+template <typename V>
+double bks_emission_probability( std::function<double(double)> vp1
+                               , std::function<double(double)> vp2
+                               , std::function<double(double)> nr
+                               , V                             t_nodes
+                               , double                        epsilon
+                               , double                        omega
+                               ) {
+    double epsilon_s = epsilon - omega;
+    double omega_s   = omega * epsilon / epsilon_s;
+
+    auto g  = std::function<std::complex<double>(double)>(
+        [=](double t) {
+            return exp( 1i * omega_s * ( t - nr(t) ) );
+        }
+    );
+    auto f1 = std::function<std::complex<double>(double)>(
+        [=](double t) {
+            return vp1(t) *  g(t);
+        }
+    );
+    auto f2 = std::function<std::complex<double>(double)>(
+        [=](double t) {
+            return vp2(t) * g(t);
+        }
+    );
+
+    std::complex<double> c1 = trap_rule(f1, t_nodes);
+    std::complex<double> c2 = trap_rule(f2, t_nodes);
+    std::complex<double> c3 = trap_rule( g, t_nodes);
+
+    return alpha * M_PI / (8 * omega) * pow(omega_s / omega, 2)
+               * ( (1 + pow(epsilon_s / epsilon, 2))   * (norm(c1) + norm(c2))
+                 + pow(omega / (epsilon * epsilon), 2) * norm(c3)
+                 );
+}
+
+ /*
+ * @param ri      refractive index; use #unity for vacuum; @p ri should be close to 1, otherwise
+ *                formulas used here are inapplicable
+ * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
+ * @param gamma_e the electron Lorentz factor
+ * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p theta
+ *                = 0 is the direction of the tangent to the trajectory
+ * @param omega   > 0, frequency of the emitted photon normalized to the reverse radiation
+ *                formation time
+ */
+
+/**
+ * @}
+ */
+
