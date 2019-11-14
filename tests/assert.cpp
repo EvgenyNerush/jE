@@ -65,6 +65,11 @@ int main(){
         assert(abs(bisection(f, 0, 3, 10).value() - 1) < 3.0 / pow(2, 10));
     }
 
+    { // Asymptotics of vacuum refractive index in strong magnetic field
+        assert(abs(vacuum_refractive_index(0, 0) * 45 / 14 - 1) < 0.1);
+        assert(abs(vacuum_refractive_index(1, 20) / (-0.175 * pow(20, -4/3.0)) - 1) < 0.1);
+    }
+
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";
     return 0;
 }

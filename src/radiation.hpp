@@ -250,7 +250,7 @@ double synchrotron_emission_probability( double b
                                        , bool   p
                                        , double theta
                                        , double omega) {
-    // the exponent in the integral is approximately equal to exp(i phi(t))
+    // the exponential in the integral is approximately equal to exp(i phi(t))
     double tau_parallel = 4 * M_PI / (omega * (theta * theta + 1 / (gamma_e * gamma_e)));
     double tau_perp     = gamma_e * pow(12 * M_PI / (omega * r(gamma_e)), 1/3.0);
     auto phi = [=](double t){ return 2 * M_PI * (t / tau_parallel + pow(t / tau_perp, 3)); };
@@ -424,12 +424,12 @@ auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
  *     W_m = \frac{e^2 \pi \omega'^2}{4 \omega^3 V} \left\{
  *         \frac{ (\varepsilon^2 + \varepsilon'^2) }{ 2 \varepsilon^2 }
  *         \sum_\mathbf{p}
- *         \left| \int dt\, \mathbf{v \cdot p}
- *                \exp [ i \omega' ( t - \mathbf{n \cdot r} ) ]
+ *         \left| \int dt\, \mathbf{v p}
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
  *         \right|^2
  *       + \frac{ \omega^2 m^2 }{ 2 \varepsilon^4 }
  *         \left| \int dt\,
- *                \exp [ i \omega' ( t - \mathbf{n \cdot r} ) ]
+ *                \exp [ i \omega' ( t - \mathbf{n r} ) ]
  *         \right|^2
  *     \right\}.
  * @f]
@@ -503,16 +503,95 @@ double vacuum_refractive_index( double b
     }
 }
 
- /*
- * @param ri      refractive index; use #unity for vacuum; @p ri should be close to 1, otherwise
- *                formulas used here are inapplicable
- * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
- * @param gamma_e the electron Lorentz factor
- * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p theta
- *                = 0 is the direction of the tangent to the trajectory
- * @param omega   > 0, frequency of the emitted photon normalized to the reverse radiation
- *                formation time
+ /**
+  * Probability of synchrotron emission in a mediun with given refractive index. The emission
+  * phobability is computed with #bks_emission_probability, where the refractive index is added
+  * only to the phase in the exponent.
+  * @param ri      the medium refractive index
+  * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
+  * @param gamma_e the electron Lorentz factor
+  * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p
+  *                theta = 0 is the direction of the tangent to the trajectory
+  * @param omega   > 0, frequency of the emitted photon normalized to the reverse radiation
+  *                formation time
  */
+double bks_synchrotron_emission_probability( double ri
+                                           , double b
+                                           , double gamma_e
+                                           , double theta
+                                           , double omega
+                                           ) {
+    double epsilon   = gamma_e / b; // m c^2 \gamma_e / (\hbar / t_rf)
+    double epsilon_s = epsilon - omega;
+    double omega_s   = omega * epsilon / epsilon_s;
+
+    // the exponential in the integral is approximately equal to exp(i phi(t)), with phi given
+    // below
+    double delta_ri = ri - 1;
+    // 1 / tau_parallel, to avoid the point tau_parallel = \infty
+    double reverse_tau_parallel = abs(omega_s * ( theta * theta
+                                                + 1 / (gamma_e * gamma_e)
+                                                - 2 * delta_ri
+                                                )
+                                     )
+                                  / (4 * M_PI);
+    double tau_perp = gamma_e * pow(12 * M_PI / (omega_s * r(gamma_e)), 1/3.0);
+    auto phi = [=](double t) {
+        return 2 * M_PI * (t * reverse_tau_parallel + pow(t / tau_perp, 3));
+    };
+
+    // we integrate approximately on +-l periods of the exponent
+    int l = 5;
+    auto f = std::function<double(const double&)>(
+        [=](const double& t) {
+             return phi(t) - 2 * M_PI * static_cast<double>(l);
+        }
+    );
+    double tb; // upper limit of the integration
+    if (1 / tau_perp > reverse_tau_parallel) {
+        tb = tau_perp * pow(static_cast<double>(l), 1/3.0);
+    } else {
+        tb = 1 / reverse_tau_parallel * static_cast<double>(l);
+    } //... thus the root of f(t) = 0 is in [0, tb]
+    int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
+    tb = bisection(f, 0, tb, n_bisections).value();
+    double ta = -tb;
+
+    // the estimate of the period of the exponent oscillations (T = 2 \pi / (d\phi/dt)) at t = tb
+    double osc_period = 1 / (reverse_tau_parallel + 3 * tb * pow(tb / tau_perp, 2));
+    // number of point for the exponent integration
+    long long int nt = llround(3 * (tb - ta) / osc_period);
+    // step of the integration
+    double dt = (tb - ta) / static_cast<double>(nt - 1);
+    auto t_nodes = ranges::v3::iota_view(0, nt)
+                 | ranges::v3::views::transform(
+                       [=](long long i){ return ta + dt * static_cast<double>(i); }
+                   );
+
+    auto nr = std::function<double(double)>(
+        [=](double t) {
+            return ri * r(gamma_e) * sin(t / gamma_e) * cos(theta);
+        }
+    );
+
+    auto vp1 = std::function<double(double)>(
+        [=](double t) {
+            return r(gamma_e) / gamma_e * sin(t / gamma_e)
+                * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
+                                              // to avoid emission caused by the current on and
+                                              // off
+        }
+    );
+    auto vp2 = std::function<double(double)>(
+        [=](double t) {
+            return r(gamma_e) / gamma_e * sin(theta) * cos(t / gamma_e)
+                * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
+                                              // to avoid emission caused by the current on and
+                                              // off
+        }
+    );
+    return bks_emission_probability(vp1, vp2, nr, t_nodes, epsilon, omega);
+}
 
 /**
  * @}
