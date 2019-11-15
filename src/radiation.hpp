@@ -486,21 +486,36 @@ double bks_emission_probability( std::function<double(double)> vp1
 
 /**
  * The real part of the vacuum refractive index in strong magnetic field @f$ B @f$, computed with
- * the accuracy of about 2%. The exact expression for the refractive index can be found in [Thomas
+ * the accuracy of about 10%. The exact expression for the refractive index can be found in [Thomas
  * Erber, High- Energy Electromagnetic Conversion Processes in Intense Magnetic Fields, Reviews of
  * modern physics, vol. 38, num. 4, oct. 1966].
+ * Asymptotics of the function are as follows:
+ * @f[
+ *     N(\chi) = 
+        \begin{cases}
+          0.3 &\text{, $\chi \ll 1$ }\\
+          0.278/x^{4/3} &\text{, $\chi \gg 1$ }
+        \end{cases}
+ * @f]
+ * @param N        value of the function of chi representing the approximation 
+                   of the original expression (for more details see Thomas Erber,
+                   High- Energy Electromagnetic Conversion Processes in Intense Magnetic
+                   Fields, Reviews of modern physics, vol. 38, num. 4, oct. 1966).
+                   The main features of the original function: zero, peak and 
+                   asymptotics are saved with precision 10%.
+ * @param alpha    fine structure constatn
  * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
  * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
 */
 double vacuum_refractive_index( double b
                               , double omega
                               ) {
-    double chi = omega * b * b;
-    if (chi <= 2) {
-        return 1.0 + 0.22 * exp(1.3636 * chi * chi - 1.26 * pow(chi, 2.22));
-    } else {
-        return 1.0 + 0.365756 / pow(chi, 4.0/3.0);
-    }
+    double chi = omega * b ;
+    double alpha = 7.297E-3;
+    double N =  14 / ( 45 * ( 1 + 0.4 * chi * chi ) ) 
+                + 0.05 * exp( - 10 * ( chi - 0.3 ) * ( chi - 0.3 ) )
+                - 0.278 / pow( chi, 4.0 / 3.0 ) * (chi * chi / ( 100 - 10 * chi + chi * chi ) );
+    return 1.0 + 0.25 * alpha * b * b * N / 3.14 ;
 }
 
  /**
