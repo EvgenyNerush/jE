@@ -7,6 +7,7 @@
 #include "../src/rng.hpp"
 #include "../src/histogram.hpp"
 #include "../src/radiation.hpp"
+#include "../src/proposal_density.hpp"
 
 using namespace std;
 
@@ -65,9 +66,25 @@ int main(){
         assert(abs(bisection(f, 0, 3, 10).value() - 1) < 3.0 / pow(2, 10));
     }
 
+    /*
     { // Asymptotics of vacuum refractive index in strong magnetic field
         assert(abs(vacuum_refractive_index(0, 0) * 45 / 14 - 1) < 0.1);
         assert(abs(vacuum_refractive_index(1, 20) / (-0.175 * pow(20, -4/3.0)) - 1) < 0.1);
+    }
+    */
+
+    { // Test zipWith from proposal_density.hpp
+        auto t1 = std::make_tuple(1, 2, 3);
+        auto t2 = std::make_tuple(1, 1, 1);
+        auto z1 = zipWith<2, int, int, int>();
+        z1( [](int x, int y){ return x + y; }, t1, t2 );
+        assert(t1 == std::make_tuple(2, 3, 4));
+
+        t1 = std::make_tuple(1, 2, 3);
+        t2 = std::make_tuple(4, 5, 6);
+        auto z2 = zipWith<1, int, int, int>();
+        z2( [](int x, int y){ return x * y; }, t1, t2 );
+        assert(t1 == std::make_tuple(4, 10, 3));
     }
 
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";

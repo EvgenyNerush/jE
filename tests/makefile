@@ -1,6 +1,6 @@
-SRC    := ../src/metropolis.hpp ../src/rng.hpp ../src/histogram.hpp ../src/radiation.hpp
-BIN    := assert metropolis synchrotron_radiation
-FLAGS  := -std=c++17 -Wall -Wpedantic -I ../range-v3/include
+SRC    := ../src/metropolis.hpp ../src/rng.hpp ../src/histogram.hpp ../src/radiation.hpp ../src/proposal_density.hpp
+BIN    := assert metropolis synchrotron_radiation bks_synchrotron_radiation
+FLAGS  := -std=c++17 -fconcepts -Wall -Wpedantic -I ../range-v3/include
 FLAGS3 := -O3 -ffast-math $(FLAGS)
 
 all: $(BIN)
@@ -12,6 +12,9 @@ metropolis: %: %.cpp $(SRC)
 	g++ $(FLAGS3) $< -o $@ && ./$@
 
 synchrotron_radiation: %: %.cpp $(SRC)
+	g++ $(FLAGS3) $< -o $@ && ./$@
+
+bks-synchrotron-radiation: %: %.cpp $(SRC)
 	g++ $(FLAGS3) $< -o $@ && ./$@
 
 clean:
