@@ -3,6 +3,7 @@
  * @brief Simple proposal densities for spaces of arbitrary dimension.
  */
 
+#include <tuple>
 #include <functional>
 
 /**
@@ -27,7 +28,7 @@ struct zipWith {
      * <tt> zipWith<1, g>((1, 2, 3), (4, 5, 6)) </tt> for <tt>auto g = ()[int x, int y]{return x *
      * y;}</tt> changes the first tuple to (4, 10, 3). 
      */
-    void operator()( auto  f
+    void operator()(       auto               f
                    ,       std::tuple<Ts...>& x
                    , const std::tuple<Ts...>& y
                    ) {
@@ -44,9 +45,9 @@ struct zipWith {
  */
 template<typename... Ts>
 struct zipWith<0, Ts...> {
-    void operator()( auto f
-             ,       std::tuple<Ts...>& x
-             , const std::tuple<Ts...>& y) {
+    void operator()(       auto               f
+                   ,       std::tuple<Ts...>& x
+                   , const std::tuple<Ts...>& y) {
         std::get<0>(x) = f( std::get<0>(x), std::get<0>(y) );
     }
 };
@@ -67,9 +68,10 @@ of the tuple @p x.
 */
 template<typename R, typename... Ts>
 std::function< void( std::pair<R, std::tuple<Ts...>>& ) >
-make_proposal_density( std::function<void (R&)> rng
+make_proposal_density( void              (rng)(R&)
                      , std::tuple<Ts...> a
-                     , auto m) {
+                     , auto              m
+                     ) {
     return [=](std::pair<R, std::tuple<Ts...>>& rx) {
         auto f = [&rx, rng, m](auto elem_x, auto elem_a){
             rng(rx.first);
