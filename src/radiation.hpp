@@ -510,8 +510,7 @@ double bks_emission_probability( std::function<double(double)> vp1
 double vacuum_refractive_index( double b
                               , double omega
                               ) {
-    double chi = omega * b ;
-    double alpha = 7.297E-3;
+    double chi = omega * b * b;
     double N =  14 / ( 45 * ( 1 + 0.4 * chi * chi ) ) 
                 + 0.05 * exp( - 10 * ( chi - 0.3 ) * ( chi - 0.3 ) )
                 - 0.278 / pow( chi, 4.0 / 3.0 ) * (chi * chi / ( 100 - 10 * chi + chi * chi ) );
