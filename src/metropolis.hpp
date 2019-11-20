@@ -28,7 +28,7 @@ std::vector<X> metropolis ( void                     rng(R&)
                           , std::function
                             <void(std::pair<T, X>&)> proposal_density
                           , std::pair<T, X>          rx0
-                          , double                   target_distribution(X)
+                          , std::function<double(X)> target_distribution
                           , size_t                   n
                           ) { 
     std::vector<X> x(n);

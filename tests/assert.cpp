@@ -66,12 +66,20 @@ int main(){
         assert(abs(bisection(f, 0, 3, 10).value() - 1) < 3.0 / pow(2, 10));
     }
 
-    /*
-    { // Asymptotics of vacuum refractive index in strong magnetic field
-        assert(abs(vacuum_refractive_index(0, 0) * 45 / 14 - 1) < 0.1);
-        assert(abs(vacuum_refractive_index(1, 20) / (-0.175 * pow(20, -4/3.0)) - 1) < 0.1);
+    { // Properties of vacuum refractive index in strong magnetic field; see figure 9 in
+      // [McDonald K.T. et al., Proposal for experimental studies of nonlinear quantum
+      // electrodynamics, Princeton U. preprint DOE ER, 1986]. Not that McDonald uses chi which is
+      // a half of chi we use.
+        double prec = 0.1; // precision
+        auto n = [](double b, double omega) {
+            return 4 * M_PI / (alpha * b * b) * (vacuum_refractive_index(b, omega) - 1);
+        };
+        assert(abs(n(0.1, 0.1) * 45 / 14 - 1)                 < prec);
+        assert(abs(n(1, 70) / (-0.278 * pow(70, -4/3.0)) - 1) < prec);
+        assert(abs(n(1, 0.5) / 0.35 - 1)                      < prec);
+        auto f = [=](double chi) { return n(1, chi); };
+        assert(abs(bisection(f, 0, 40, 10).value() / 17 - 1)  < 2 * prec);
     }
-    */
 
     { // Test zipWith from proposal_density.hpp
         auto t1 = std::make_tuple(1, 2, 3);

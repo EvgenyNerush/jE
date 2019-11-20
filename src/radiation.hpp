@@ -51,10 +51,10 @@ const double alpha = 1 / 137.035999084;
  *            (x_a + x_b) / 2 @f$ if @p n < 1, and approximate root value otherwise
  */
 std::optional<double> bisection( std::function<double(const double&)> f
-                             , double xa
-                             , double xb
-                             , int    n
-                             ) {
+                               , double xa
+                               , double xb
+                               , int    n
+                               ) {
     double f1 = f(xa);
     double f2 = f(xb);
     if (f1 * f2 > 0) {
@@ -264,9 +264,9 @@ double synchrotron_emission_probability( double b
 
     double tb;
     if (tau_perp < tau_parallel) {
-        tb = tau_perp * pow(static_cast<double>(l), 1/3.0);
+        tb = tau_perp * pow(static_cast<double>(l + 1), 1/3.0);
     } else {
-        tb = tau_parallel * static_cast<double>(l);
+        tb = tau_parallel * static_cast<double>(l + 1);
     } //... thus the root of f(t) = 0 is in [0, tb]
     int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
     tb = bisection(f, 0, tb, n_bisections).value();
@@ -444,8 +444,8 @@ auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
  *                as @p std::vector, with doubles within
  * @param epsilon the normalized initial electron energy, @f$ m c^2 \gamma_e / (\hbar / t_{rf}) =
  *                \gamma_e / b @f$
- * @param omega   > 0, frequency of the emitted photon, @f$ \omega_m @f$, normalized to the reverse
- *                radiation formation time
+ * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon, @f$ \omega_m
+ *                @f$, normalized to the reverse radiation formation time
  */
 template <typename V>
 double bks_emission_probability( std::function<double(double)> vp1
@@ -485,25 +485,28 @@ double bks_emission_probability( std::function<double(double)> vp1
 }
 
 /**
- * The real part of the vacuum refractive index in strong magnetic field @f$ B @f$, computed with
- * the accuracy of about 10%. The exact expression for the refractive index can be found in [Thomas
- * Erber, High- Energy Electromagnetic Conversion Processes in Intense Magnetic Fields, Reviews of
- * modern physics, vol. 38, num. 4, oct. 1966].
- * Asymptotics of the function are as follows:
+ * An approximation of the real part of the vacuum refractive index in strong magnetic field @f$ B
+ * @f$. The refractive index for photon wave vector and polarization perpendicular to the magnetic
+ * field is
+ * @f[
+ *     n = 1 + \frac{\alpha b^2}{4 \pi} N(\chi),
+ * @f]
+ * with @f$ \chi @f$ the photon quantum parameter.
+ *
+ * The exact expression for the refractive index can be found in [Thomas Erber, High- Energy
+ * Electromagnetic Conversion Processes in Intense Magnetic Fields, Reviews of modern physics, vol.
+ * 38, num. 4, oct. 1966]. The asymptotics of the function @f$ N @f$ are
  * @f[
  *     N(\chi) = 
-        \begin{cases}
-          0.3 &\text{, $\chi \ll 1$ }\\
-          0.278/x^{4/3} &\text{, $\chi \gg 1$ }
-        \end{cases}
+          \left\{
+            \begin{array}{lr}
+              14/45, \quad &\chi \ll 1, \\
+              0.278 \chi^{-4/3}, \quad &\chi \gg 1.
+            \end{array}
+          \right.
  * @f]
- * @param N        value of the function of chi representing the approximation 
-                   of the original expression (for more details see Thomas Erber,
-                   High- Energy Electromagnetic Conversion Processes in Intense Magnetic
-                   Fields, Reviews of modern physics, vol. 38, num. 4, oct. 1966).
-                   The main features of the original function: zero, peak and 
-                   asymptotics are saved with precision 10%.
- * @param alpha    fine structure constatn
+ * The main features of the original function @f$ N @f$, such as the position of the function zero,
+ * peak value and asymptotics, are saved in the approximation with precision of about 10-20%.
  * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
  * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
 */
@@ -511,10 +514,12 @@ double vacuum_refractive_index( double b
                               , double omega
                               ) {
     double chi = omega * b * b;
-    double N =  14 / ( 45 * ( 1 + 0.4 * chi * chi ) ) 
-                + 0.05 * exp( - 10 * ( chi - 0.3 ) * ( chi - 0.3 ) )
-                - 0.278 / pow( chi, 4.0 / 3.0 ) * (chi * chi / ( 100 - 10 * chi + chi * chi ) );
-    return 1.0 + 0.25 * alpha * b * b * N / 3.14 ;
+    double N
+        = 14/45.0 / (1 + 0.25 * chi * chi)                   // -> asymptotics at chi << 1
+        + 0.05 * exp(-chi - 1 / (2 * chi + 0.1)) / exp(-1.5) // -> bump at chi = 0.5
+        - 0.278 * pow(chi + 1, -4/3.0)                       // -> asymptotics at chi >> 1
+                * chi * chi / ( 400 - 25 * chi + chi * chi); // screening for small chi
+    return 1.0 + alpha * b * b * N / (4 * M_PI);
 }
 
  /**
@@ -526,8 +531,8 @@ double vacuum_refractive_index( double b
   * @param gamma_e the electron Lorentz factor
   * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p
   *                theta = 0 is the direction of the tangent to the trajectory
-  * @param omega   > 0, frequency of the emitted photon normalized to the reverse radiation
-  *                formation time
+  * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon normalized to
+  *                the reverse radiation formation time
  */
 double bks_synchrotron_emission_probability( double ri
                                            , double b
@@ -563,11 +568,12 @@ double bks_synchrotron_emission_probability( double ri
     );
     double tb; // upper limit of the integration
     if (1 / tau_perp > reverse_tau_parallel) {
-        tb = tau_perp * pow(static_cast<double>(l), 1/3.0);
+        tb = tau_perp * pow(static_cast<double>(l + 1), 1/3.0);
     } else {
-        tb = 1 / reverse_tau_parallel * static_cast<double>(l);
+        tb = 1 / reverse_tau_parallel * static_cast<double>(l + 1);
     } //... thus the root of f(t) = 0 is in [0, tb]
     int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
+    std::cout << tb << '\t' << f(tb) << std::endl;
     tb = bisection(f, 0, tb, n_bisections).value();
     double ta = -tb;
 

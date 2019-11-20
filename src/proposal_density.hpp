@@ -68,7 +68,7 @@ of the tuple @p x.
 */
 template<typename R, typename... Ts>
 std::function< void( std::pair<R, std::tuple<Ts...>>& ) >
-make_proposal_density( void              (rng)(R&)
+make_proposal_density( void              rng(R&)
                      , std::tuple<Ts...> a
                      , auto              m
                      ) {

@@ -11,10 +11,10 @@ using namespace std;
 
 int main() {
     auto pd = make_proposal_density
-              ( pm_rng
-              , std::make_tuple<double, double>(1, 1)
-              , pm_cast_with_amplitude
-              );
+                  ( pm_rng
+                  , std::make_tuple<double, double>(1, 1)
+                  , pm_cast_with_amplitude
+                  );
     uint64_t rng_state = 123;
     size_t   n         = 1'000'000;
 

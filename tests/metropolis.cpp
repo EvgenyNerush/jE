@@ -55,7 +55,7 @@ int main() {
             , pm_cast_to_01
             , proposal_density
             , make_pair(54321ul, 0.5)
-            , td
+            , std::function<double(double)>(td)
             , n);
 
     vector<int> powers {1, 2, 3};
