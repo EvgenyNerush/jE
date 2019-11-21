@@ -255,7 +255,7 @@ double synchrotron_emission_probability( double b
     double tau_perp     = gamma_e * pow(12 * M_PI / (omega * r(gamma_e)), 1/3.0);
     auto phi = [=](double t){ return 2 * M_PI * (t / tau_parallel + pow(t / tau_perp, 3)); };
     // we integrate approximately on +-l periods of the exponent
-    int l = 5;
+    int l = 6;
     auto f = std::function<double(const double&)>(
         [=](const double& t) {
              return phi(t) - 2 * M_PI * static_cast<double>(l);
@@ -273,7 +273,7 @@ double synchrotron_emission_probability( double b
     double ta = -tb;
 
     // the estimate of the period of the exponent oscillations (T = 2 \pi / (d\phi/dt)) at t = tb
-    double osc_period = 1 / (1 / tau_parallel + 3 * tb * pow(tb / tau_perp, 2));
+    double osc_period = 1 / (1 / tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
     // number of point for the exponent integration
     long long int nt = llround(3 * (tb - ta) / osc_period);
     // step of the integration
@@ -548,7 +548,7 @@ double bks_synchrotron_emission_probability( double ri
     // below
     double delta_ri = ri - 1;
     // 1 / tau_parallel, to avoid the point tau_parallel = \infty
-    double reverse_tau_parallel = abs(omega_s * ( theta * theta
+    double reverse_tau_parallel = fabs(omega_s * ( theta * theta
                                                 + 1 / (gamma_e * gamma_e)
                                                 - 2 * delta_ri
                                                 )
@@ -560,7 +560,7 @@ double bks_synchrotron_emission_probability( double ri
     };
 
     // we integrate approximately on +-l periods of the exponent
-    int l = 5;
+    int l = 6;
     auto f = std::function<double(const double&)>(
         [=](const double& t) {
              return phi(t) - 2 * M_PI * static_cast<double>(l);
@@ -573,12 +573,11 @@ double bks_synchrotron_emission_probability( double ri
         tb = 1 / reverse_tau_parallel * static_cast<double>(l + 1);
     } //... thus the root of f(t) = 0 is in [0, tb]
     int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
-    std::cout << tb << '\t' << f(tb) << std::endl;
     tb = bisection(f, 0, tb, n_bisections).value();
     double ta = -tb;
 
     // the estimate of the period of the exponent oscillations (T = 2 \pi / (d\phi/dt)) at t = tb
-    double osc_period = 1 / (reverse_tau_parallel + 3 * tb * pow(tb / tau_perp, 2));
+    double osc_period = 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
     // number of point for the exponent integration
     long long int nt = llround(3 * (tb - ta) / osc_period);
     // step of the integration

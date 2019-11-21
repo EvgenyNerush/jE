@@ -33,7 +33,7 @@ int main() {
         for (auto omega: omegas) {
             double theor_val = jackson1483    (b, gamma_e, theta, omega);
             double num_val   = jackson1483_num(b, gamma_e, theta, omega);
-            double err = abs(num_val - theor_val) / theor_val;
+            double err = fabs(num_val - theor_val) / theor_val;
             acc = acc and (err < accepted_relative_error);
             theor_vals.push_back(theor_val);
             num_vals.push_back(num_val);
