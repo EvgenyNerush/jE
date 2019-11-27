@@ -506,7 +506,9 @@ double bks_emission_probability( std::function<double(double)> vp1
           \right.
  * @f]
  * The main features of the original function @f$ N @f$, such as the position of the function zero,
- * peak value and asymptotics, are saved in the approximation with precision of about 10-20%.
+ * peak value and asymptotics, are saved in the approximation with precision of about 10-20%. See
+ * the plot of the approximation for @f$ N(\chi) @f$ <a href =
+ * "https://www.wolframcloud.com/obj/cbf8dcb5-23d1-42ca-b1c3-0462ceff113c">here</a>.
  * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
  * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
 */

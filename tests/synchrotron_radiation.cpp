@@ -1,5 +1,6 @@
-/* Let's check that the synchrotron spectrum computed numerically with #emission_probability_s from
- * ../src/radiation.hpp coincides with the classical synchrotron formula.
+/* Let's check that the synchrotron spectrum computed numerically with
+ * synchrotron_emission_probability and jackson1483_num from ../src/radiation.hpp coincides with
+ * the classical synchrotron formula.
  */
 
 #include <iostream>

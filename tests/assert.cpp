@@ -95,6 +95,18 @@ int main(){
         assert(t1 == std::make_tuple(4, 10, 3));
     }
 
+    { // Classical synchrotron emission probability and BKS emission probability should be the same
+      // if the quantum parameter $ \chi $ is small, $ chi << 1 $.
+        double b       = 1e-6;
+        double gamma_e = 1e3;
+        double chi     = b * gamma_e;
+        double om_c    = omega_c(gamma_e);
+        double w_cl = synchrotron_emission_probability(b, gamma_e,  true, 0, om_c)
+                    + synchrotron_emission_probability(b, gamma_e, false, 0, om_c);
+        double w_bks = bks_synchrotron_emission_probability(1, b, gamma_e, 0, om_c);
+        assert(fabs(w_bks / w_cl - 1) < 10 * chi);
+    }
+
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";
     return 0;
 }
