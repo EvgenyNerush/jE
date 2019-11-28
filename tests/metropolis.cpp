@@ -1,6 +1,7 @@
 /* In this test *n* x-coordinates with 1/sqrt(x) distribution are generated, then the average
  * value of x, x^2 and x^3 are computed and compared with theoretical values.
- * This test takes about 2 seconds with Xeon X5550 processor.
+ * This test consumes about 250 MB of memory and with Xeon X5550 processor takes about 2 seconds of
+ * time.
  */
 
 #include <cmath>

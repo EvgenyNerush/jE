@@ -615,6 +615,45 @@ double bks_synchrotron_emission_probability( double ri
 }
 
 /**
+ * Target distribution which can be used in the Metropolis algorithm in order to generate the
+ * distributions of synchrotron photons in (@p theta, @p omega) space, i.e. this function gives
+ * probability of photon emission per frequency interval and per angle interval. Here @p theta is
+ * the angle in the plane perpendicular to the normal vector of the trajectory, and <tt> theta = 0
+ * </tt> is the direction of the tangent to the trajectory; @p omega is the normalized photon
+ * frequency.
+ *
+ * The normalization of this function (which does not matter for the Metropolis algorithm, but can
+ * be important for other applications) is chosen such that @p bks_synchrotron_td integrated over
+ * @p theta and @p omega yield the overall probability of photon emission during single full circle
+ * path of the electron.
+ */
+std::function< double( std::tuple<double, double> ) >
+bks_synchrotron_td( double ri
+                  , double b
+                  , double gamma_e
+                  ) {
+    // The normalization can be obtained analogous to jackson1483_num, see comments there. Note
+    // that the generated photons are evenly distributed around the electron trajectory (which is a
+    // circle), i.e. they are evenly distributed in the angle $ \phi $ which in turn corresponds to
+    // the direction of the photon wavevector in the plane of the electron trajectory. Thus, the
+    // solid angle is $ d\Omega = \cos \theta \, d\phi d\theta $, and for the emission probability
+    // we get $ d^2 W / d\theta d\omega = 2 W_m \cos \theta \omega^2 / \pi^2 $ with $ W_m $ the
+    // emission probability computed with bks_synchrotron_emission_probability function.
+    return std::function< double( std::tuple<double, double> ) >(
+        [=]( std::tuple<double, double> theta_omega ) {
+            double theta = std::get<0>(theta_omega);
+            double omega = std::get<1>(theta_omega);
+            if (omega > 0 and omega * b < gamma_e) {
+                return 2 * pow(omega / M_PI, 2) * cos(theta)
+                         * bks_synchrotron_emission_probability(ri, b, gamma_e, theta, omega);
+            } else {
+                return 0.0;
+            }
+        }
+    );
+}
+
+/**
  * @}
  */
 
