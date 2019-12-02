@@ -46,5 +46,5 @@ std::vector<X> metropolis ( void                     rng(R&)
         }
         x[i] = rx.second;
     }
-    return std::move(x);
+    return x;
 }
