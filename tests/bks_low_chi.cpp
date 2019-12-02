@@ -44,7 +44,7 @@ int main() {
     double    acc_err  = 0.01;             // accepted relative error
 
     // target distributions
-    auto bks_td = bks_synchrotron_td(1, b, gamma_e);
+    auto bks_td = bks_synchrotron_td(1, 1, b, gamma_e);
     // proposal_density(pair(rng_state, tuple(theta, omega)))
     auto pd = make_proposal_density< uint64_t, double, double >
                   ( pm_rng

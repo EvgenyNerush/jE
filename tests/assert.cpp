@@ -68,7 +68,7 @@ int main(){
 
     { // Properties of vacuum refractive index in strong magnetic field; see figure 9 in
       // [McDonald K.T. et al., Proposal for experimental studies of nonlinear quantum
-      // electrodynamics, Princeton U. preprint DOE ER, 1986]. Not that McDonald uses chi which is
+      // electrodynamics, Princeton U. preprint DOE ER, 1986]. Note that McDonald uses chi which is
       // a half of chi we use.
         double prec = 0.1; // precision
         auto n = [](double b, double omega) {
@@ -103,8 +103,54 @@ int main(){
         double om_c    = omega_c(gamma_e);
         double w_cl = synchrotron_emission_probability(b, gamma_e,  true, 0, om_c)
                     + synchrotron_emission_probability(b, gamma_e, false, 0, om_c);
-        double w_bks = bks_synchrotron_emission_probability(1, b, gamma_e, 0, om_c);
+        double w_bks = bks_synchrotron_emission_probability(1, 1, b, gamma_e, 0, om_c);
         assert(fabs(w_bks / w_cl - 1) < 10 * chi);
+    }
+
+    {
+     {// In classical limit, if one scales (say, makes it $ m $ times larger) simultaneously the
+      // mass of the emitting particle (hence the curvature radius) and the wavelength of the
+      // emitted photon, the emission process would be similar to the non-scaled case in the sense
+      // in which two triangles can be similar. Namely, both "transverse" and "longitudinal" time
+      // scales of the emission process in the second case $ m $ times larger than in the first
+      // one. This allows to find the relation which is tested here: $ W(m, omega / m) = m^3 W(1,
+      // omega) $, where $ W $ is the emission probability with first argument the particle mass
+      // and the second the photon frequency.
+        double b       = 1e-6;
+        double gamma_e = 1e2;
+        // just for the record, theta = 0 and omega = 0.42 omega_c is approximate point of the
+        // maximum of the synchrotron energy spectrum
+        double omega   = 0.42 * omega_c(gamma_e);
+        double theta   = 0.5 / gamma_e;
+        double m       = 10;
+        double w0 = bks_synchrotron_emission_probability(1, m, b, gamma_e, theta, omega / m);
+        double w1 = bks_synchrotron_emission_probability(1, 1, b, gamma_e, theta, omega)
+                  * pow(m, 3);
+        assert(fabs(w0 / w1 - 1) < 1e-3);
+     }
+     {// The trick described above does not hold for the quantum case (chi >~ 1) mostly because the
+      // rising spin term in the emission probability. However, if the particle mass and the photon
+      // frequency are multiplied by $ m $ (that preserves the recoil effect), and the magnetic
+      // field by $ m^2 $ (that preserves the ratio of the trajectory curvature radius and the
+      // photon wavelength), the emission probability depend on $ m $ as $ m^{-3} $ (see equations
+      // in the comments to bks_emission_probability from ../src/radiation.hpp).
+        double b       = 1e-2;
+        double gamma_e = 3e2;
+        double omega   = 0.5 * gamma_e / b;
+        double theta   = 0.5 / gamma_e;
+        double m = 10;
+        // Note here that as we chenge the magnetic field, and the time and frequency normalization
+        // depend on it, the scaling described above looks different in the normalized variables.
+        // In particular, one should take into account that bks_synchrotron_emission_probability
+        // returns the product of the virtual volume and the emission probability, and in the
+        // normalized units the virtual volume scales as $ m^6 $.
+        double w0
+            = bks_synchrotron_emission_probability(1, m, m * m * b, gamma_e, theta, omega / m);
+        double w1
+            = bks_synchrotron_emission_probability(1, 1,         b, gamma_e, theta, omega)
+            * pow(m, 3);
+        assert(fabs(w0 / w1 - 1) < 1e-3);
+     }
     }
 
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";

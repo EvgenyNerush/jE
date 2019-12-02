@@ -442,8 +442,8 @@ auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
  * @param t_nodes values of @f$ t_0, t_1, t_2, ... @f$ used for the computation of the integrals;
  *                this function can take @p t_nodes as @p range or @p view (from C++20 ranges) or
  *                as @p std::vector, with doubles within
- * @param epsilon the normalized initial electron energy, @f$ m c^2 \gamma_e / (\hbar / t_{rf}) =
- *                \gamma_e / b @f$
+ * @param epsilon the normalized initial energy of the emitting particle, @f$ m c^2 \gamma_e /
+ *                (\hbar / t_{rf}) = m \gamma_e / b @f$
  * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon, @f$ \omega_m
  *                @f$, normalized to the reverse radiation formation time
  */
@@ -529,6 +529,8 @@ double vacuum_refractive_index( double b
   * phobability is computed with #bks_emission_probability, where the refractive index is added
   * only to the phase in the exponent.
   * @param ri      the medium refractive index
+  * @param m       mass of the emitting particle (in electron masses), thus set to 1 for an
+  *                electron
   * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
   * @param gamma_e the electron Lorentz factor
   * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p
@@ -537,12 +539,13 @@ double vacuum_refractive_index( double b
   *                the reverse radiation formation time
  */
 double bks_synchrotron_emission_probability( double ri
+                                           , double m
                                            , double b
                                            , double gamma_e
                                            , double theta
                                            , double omega
                                            ) {
-    double epsilon   = gamma_e / b; // m c^2 \gamma_e / (\hbar / t_rf)
+    double epsilon   = m * gamma_e / b; // m c^2 \gamma_e / (\hbar / t_rf)
     double epsilon_s = epsilon - omega;
     double omega_s   = omega * epsilon / epsilon_s;
 
@@ -556,7 +559,7 @@ double bks_synchrotron_emission_probability( double ri
                                                 )
                                      )
                                   / (4 * M_PI);
-    double tau_perp = gamma_e * pow(12 * M_PI / (omega_s * r(gamma_e)), 1/3.0);
+    double tau_perp = gamma_e * pow(12 * M_PI * m * m / (omega_s * r(gamma_e)), 1/3.0);
     auto phi = [=](double t) {
         return 2 * M_PI * (t * reverse_tau_parallel + pow(t / tau_perp, 3));
     };
@@ -591,13 +594,13 @@ double bks_synchrotron_emission_probability( double ri
 
     auto nr = std::function<double(double)>(
         [=](double t) {
-            return ri * r(gamma_e) * sin(t / gamma_e) * cos(theta);
+            return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
         }
     );
 
     auto vp1 = std::function<double(double)>(
         [=](double t) {
-            return r(gamma_e) / gamma_e * sin(t / gamma_e)
+            return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
                 * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
                                               // to avoid emission caused by the current on and
                                               // off
@@ -605,7 +608,7 @@ double bks_synchrotron_emission_probability( double ri
     );
     auto vp2 = std::function<double(double)>(
         [=](double t) {
-            return r(gamma_e) / gamma_e * sin(theta) * cos(t / gamma_e)
+            return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
                 * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
                                               // to avoid emission caused by the current on and
                                               // off
@@ -626,9 +629,12 @@ double bks_synchrotron_emission_probability( double ri
  * be important for other applications) is chosen such that @p bks_synchrotron_td integrated over
  * @p theta and @p omega yield the overall probability of photon emission during single full circle
  * path of the electron.
+ *
+ * For parameters description, see bks_synchrotron_emission_probability.
  */
 std::function< double( std::tuple<double, double> ) >
 bks_synchrotron_td( double ri
+                  , double m
                   , double b
                   , double gamma_e
                   ) {
@@ -645,7 +651,7 @@ bks_synchrotron_td( double ri
             double omega = std::get<1>(theta_omega);
             if (omega > 0 and omega * b < gamma_e) {
                 return 2 * pow(omega / M_PI, 2) * cos(theta)
-                         * bks_synchrotron_emission_probability(ri, b, gamma_e, theta, omega);
+                         * bks_synchrotron_emission_probability(ri, m, b, gamma_e, theta, omega);
             } else {
                 return 0.0;
             }
