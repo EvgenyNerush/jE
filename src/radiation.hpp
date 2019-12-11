@@ -528,9 +528,9 @@ double vacuum_refractive_index( double b
   * Probability of synchrotron emission in a mediun with given refractive index. The emission
   * phobability is computed with #bks_emission_probability, where the refractive index is added
   * only to the phase in the exponent.
-  * @param ri      the medium refractive index
-  * @param m       mass of the emitting particle (in electron masses), thus set to 1 for an
-  *                electron
+  * @param ri      the medium refractive index, 1 for vacuum
+  * @param m       the rest mass of the emitting particle (in electron masses), thus set to 1 for
+  *                an electron
   * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
   * @param gamma_e the electron Lorentz factor
   * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p

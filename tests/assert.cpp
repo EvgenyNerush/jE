@@ -151,6 +151,26 @@ int main(){
             * pow(m, 3);
         assert(fabs(w0 / w1 - 1) < 1e-3);
      }
+     {// Furthermore, one can slightly increase the refractive index, and compensate the resulting
+      // dephasing by the decrease of the electron Lorentz factor. To conserve the curvature
+      // radius, the particle mass should be respectively increased. Thus, after these
+      // manipulations the emission probability should be unchanged.
+      double b        = 1e-2;
+      double gamma_0  = 1e2; // 1 - v \approx 1 / 2 gamma_e^2
+      double omega    = 0.2 * gamma_0 / b;
+      double theta    = 0.5 / gamma_0;
+      double delta_ri = 2e-5; // excess of the refractive index over the unity
+
+      double ri       = 1 + delta_ri;
+      double gamma_1  = 1 / sqrt(2 * delta_ri + 1 / (gamma_0 * gamma_0)); // 84.5
+      double m        = gamma_0 / gamma_1;
+
+      double w0 = bks_synchrotron_emission_probability( 1, 1, b, gamma_0, theta, omega);
+      double w_ = bks_synchrotron_emission_probability(ri, 1, b, gamma_0, theta, omega);
+      double w1 = bks_synchrotron_emission_probability(ri, m, b, gamma_1, theta, omega);
+      // w_ and w0 differs on about several percents
+      assert(fabs(w0 - w1) < 1e-3 * (w_ - w0));
+     }
     }
 
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";
