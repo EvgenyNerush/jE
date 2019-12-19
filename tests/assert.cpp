@@ -78,7 +78,7 @@ int main(){
         assert(fabs(n(1, 70) / (-0.278 * pow(70, -4/3.0)) - 1) < prec);
         assert(fabs(n(1, 0.5) / 0.35 - 1)                      < prec);
         auto f = [=](double chi) { return n(1, chi); };
-        assert(fabs(bisection(f, 0, 40, 10).value() / 17 - 1)  < 2 * prec);
+        assert(fabs(bisection(f, 0, 40, 10).value() / 15 - 1)  < prec);
     }
 
     { // Test zipWith from proposal_density.hpp
