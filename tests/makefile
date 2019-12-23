@@ -7,23 +7,10 @@ FLAGS3 := -O3 -ffast-math $(FLAGS)
 
 all: $(BIN)
 
-assert: %: %.cpp $(SRC)
+assert: assert.cpp $(SRC)
 	g++ -g $(FLAGS) $< -o $@ && ./$@
 
-metropolis: %: %.cpp $(SRC)
+%: %.cpp $(SRC)
 	g++ $(FLAGS3) $< -o $@ && ./$@
-
-synchrotron_radiation: %: %.cpp $(SRC)
-	g++ $(FLAGS3) $< -o $@ && ./$@
-
-proposal_density: %: %.cpp $(SRC)
-	g++ $(FLAGS3) $< -o $@ && ./$@
-
-bks_low_chi: %: %.cpp $(SRC)
-	g++ $(FLAGS3) $< -o $@ && ./$@
-
-bks_high_chi: %: %.cpp $(SRC)
-	g++ $(FLAGS3) $< -o $@ && ./$@
-
 clean:
 	rm -I $(BIN)
