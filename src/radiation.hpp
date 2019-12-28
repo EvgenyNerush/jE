@@ -327,8 +327,8 @@ double synchrotron_emission_probability( double b
  * @f[
  *     I = \sum_m \hbar \omega_m |C_m|^2
  *     = \frac{\hbar V }{\pi^3 c^3} \int \int \omega^3 \sum_\mathbf{p} |C|^2 \, d\omega \, d\Omega
- *     = \frac{e^2}{4 \pi^2 c^3} \int \int \omega^2 \sum_\mathbf{p} \left| \int_t \mathbf{v}(t)
- *     \mathbf{p} \exp \left[ i \omega t - i \mathbf{k r}(t) \right] \right|^2 \, d\omega \,
+ *     = \frac{e^2}{4 \pi^2 c^3} \int \int \omega^2 \sum_\mathbf{p} \left| \int \mathbf{v}(t)
+ *     \mathbf{p} \exp \left[ i \omega t - i \mathbf{k r}(t) \right] \, dt \right|^2 \, d\omega \,
  *     d\Omega,
  * @f]
  * with @f$ \mathbf{p} @f$ one of two polarization directions.  This formula is used here in the
