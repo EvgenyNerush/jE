@@ -70,18 +70,18 @@ int main(){
       // [McDonald K.T. et al., Proposal for experimental studies of nonlinear quantum
       // electrodynamics, Princeton U. preprint DOE ER, 1986]. Note that McDonald uses chi which is
       // a half of chi we use.
-        double prec = 0.1; // precision
+        double precision = 0.1;
         auto n = [](double b, double omega) {
             return 4 * M_PI / (alpha * b * b) * (vacuum_refractive_index(b, omega) - 1);
         };
-        assert(fabs(n(0.1, 0.1) * 45 / 14 - 1)                 < prec);
-        assert(fabs(n(1, 70) / (-0.278 * pow(70, -4/3.0)) - 1) < prec);
-        assert(fabs(n(1, 0.5) / 0.35 - 1)                      < prec);
+        assert(fabs(n(0.1, 0.1) * 45 / 14 - 1)                 < precision);
+        assert(fabs(n(1, 70) / (-0.278 * pow(70, -4/3.0)) - 1) < precision);
+        assert(fabs(n(1, 0.5) / 0.35 - 1)                      < precision);
         auto f = [=](double chi) { return n(1, chi); };
-        assert(fabs(bisection(f, 0, 40, 10).value() / 15 - 1)  < prec);
+        assert(fabs(bisection(f, 0, 40, 10).value() / 15 - 1)  < precision);
     }
 
-    { // Test zipWith from proposal_density.hpp
+    { // Test of zipWith from proposal_density.hpp
         auto t1 = std::make_tuple(1, 2, 3);
         auto t2 = std::make_tuple(1, 1, 1);
         auto z1 = zipWith<2, int, int, int>();
@@ -168,9 +168,41 @@ int main(){
       double w0 = bks_synchrotron_emission_probability( 1, 1, b, gamma_0, theta, omega);
       double w_ = bks_synchrotron_emission_probability(ri, 1, b, gamma_0, theta, omega);
       double w1 = bks_synchrotron_emission_probability(ri, m, b, gamma_1, theta, omega);
-      // w_ and w0 differs on about several percents
-      assert(fabs(w0 - w1) < 1e-3 * (w_ - w0));
+      // w_ and w0 differs on about several percents, whereas w1 should be equal to w0
+      assert(fabs(w1 - w0) < 1e-3 * (w_ - w0));
      }
+    }
+
+    { // Here we compare results of bks_synchrotron_emission_probability in "Cherenkov zone" with
+      // the results obtained with Wolfram Cloud, see
+      // https://www.wolframcloud.com/obj/4df105db-f7ae-4f5c-b700-1661857f91d7
+      double eps_s_fraction = 0.5; // \hbar \omega' / mc^2 \gamma_e
+      double chi = sqrt(12 * M_PI) * eps_s_fraction; // ...thus tau_parallel = tau_perp, for
+                                                     // theta = 0 and delta_ri = 0
+      double gamma_e = 1e4;
+      double b = chi / gamma_e;
+      double omega = gamma_e / b * eps_s_fraction / (1 + eps_s_fraction);
+
+      // ri2 and ri3 lead to the chenge of the signum of the linear term in the phase; ri2 yields
+      // the same value of tau_parallel as ri = 1, and ri3 yields 1/9 of that value for
+      // tau_parallel
+      double ri2 = 1 + 1 / pow(gamma_e, 2);
+      double ri3 = 1 + 5 / pow(gamma_e, 2);
+      double w1 = bks_synchrotron_emission_probability(  1, 1, b, gamma_e, 0, omega);
+      double w2 = bks_synchrotron_emission_probability(ri2, 1, b, gamma_e, 0, omega);
+      double w3 = bks_synchrotron_emission_probability(ri3, 1, b, gamma_e, 0, omega);
+
+      double a1
+          = 0.5 * (1 + pow(1 / eps_s_fraction, 2)); // (\eps^2 + \eps'^2) / 2 \eps^2, see
+                                                    // equation for W_m in bks_emission_probability
+                                                    // from ../src/radiation.hpp
+      double a2 = 0.5 * pow(omega * b / gamma_e, 2);
+      // function that computes value \propto W_m from values of the integrals I and J, see ref. to
+      // wolframcloud above
+      auto f = [=](double I, double J) { return a1 * J * J + a2 * I * I; };
+
+      cout << w1 / w2 << '\t' << f(0.0464, 0.0236) / f(0.0373, 0.621) << '\n'
+           << w1 / w3 << '\t' << f(0.0464, 0.0236) / f(0.0670, 1.07) << '\n';
     }
 
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";

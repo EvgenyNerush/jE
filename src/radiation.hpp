@@ -525,7 +525,7 @@ double vacuum_refractive_index( double b
 }
 
  /**
-  * Probability of synchrotron emission in a mediun with given refractive index. The emission
+  * Probability of synchrotron emission in a mediun with a given refractive index. The emission
   * phobability is computed with #bks_emission_probability, where the refractive index is added
   * only to the phase in the exponent.
   * @param ri      the medium refractive index, 1 for vacuum
