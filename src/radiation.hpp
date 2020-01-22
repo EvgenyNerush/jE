@@ -253,29 +253,22 @@ double synchrotron_emission_probability( double b
     // the exponential in the integral is approximately equal to exp(i phi(t))
     double tau_parallel = 4 * M_PI / (omega * (theta * theta + 1 / (gamma_e * gamma_e)));
     double tau_perp     = gamma_e * pow(12 * M_PI / (omega * r(gamma_e)), 1/3.0);
-    auto phi = [=](double t){ return 2 * M_PI * (t / tau_parallel + pow(t / tau_perp, 3)); };
-    // we integrate approximately on +-l periods of the exponent
-    int l = 6;
-    auto f = std::function<double(const double&)>(
-        [=](const double& t) {
-             return phi(t) - 2 * M_PI * static_cast<double>(l);
-        }
-    );
 
-    double tb;
+    // we integrate approximately on the interval of +-l sizes of the leading bumb of the exponent
+    double l = 4;
+    double period_fraction = 1/2.0; // fraction of the minimal period which determines the timestep
+    double tb; // upper limit of the integration
     if (tau_perp < tau_parallel) {
-        tb = tau_perp * pow(static_cast<double>(l + 1), 1/3.0);
+        tb = l * tau_perp;
     } else {
-        tb = tau_parallel * static_cast<double>(l + 1);
-    } //... thus the root of f(t) = 0 is in [0, tb]
-    int n_bisections = 10; // number of the iterations in the bisection method; 1 / 2^10 ~ 10^{-3}
-    tb = bisection(f, 0, tb, n_bisections).value();
-    double ta = -tb;
+        tb = l * tau_parallel;
+    }
+    double ta = -tb; // lower limit of the integration
 
     // the estimate of the period of the exponent oscillations (T = 2 \pi / (d\phi/dt)) at t = tb
     double osc_period = 1 / (1 / tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
     // number of points for the exponent integration
-    long long int nt = llround(3 * (tb - ta) / osc_period);
+    long long int nt = llround((tb - ta) / (osc_period * period_fraction));
     // step of the integration
     double dt = (tb - ta) / static_cast<double>(nt - 1);
     auto t_nodes = ranges::v3::iota_view(0, nt)
@@ -465,7 +458,7 @@ double bks_emission_probability( std::function<double(double)> vp1
     );
     auto f1 = std::function<std::complex<double>(double)>(
         [=](double t) {
-            return vp1(t) *  g(t);
+            return vp1(t) * g(t);
         }
     );
     auto f2 = std::function<std::complex<double>(double)>(
@@ -549,39 +542,28 @@ double bks_synchrotron_emission_probability( double ri
     double epsilon_s = epsilon - omega;
     double omega_s   = omega * epsilon / epsilon_s;
 
-    // the exponential in the integral is approximately equal to exp(i phi(t)), with phi given
-    // below
+    // the exponential in the integrals is approximately equal to exp(i phi(t)), with phi = 2 *
+    // M_PI * (t * signed_reverse_tau_parallel + pow(t / tau_perp, 3));
     double delta_ri = ri - 1;
     // +-1 / tau_parallel, to avoid the point tau_parallel = \infty
     double signed_reverse_tau_parallel
         = omega_s / (4 * M_PI) * ( theta * theta + 1 / (gamma_e * gamma_e) - 2 * delta_ri);
     double reverse_tau_parallel = fabs(signed_reverse_tau_parallel);
     double tau_perp = gamma_e * pow(12 * M_PI * m * m / (omega_s * r(gamma_e)), 1/3.0);
-    auto phi = [=](double t) {
-        return 2 * M_PI * (t * signed_reverse_tau_parallel + pow(t / tau_perp, 3));
-    };
 
-    // we integrate approximately on +-l periods of the exponent
-    int l = 6;
-    double period_fraction = 1/3.0; // fraction of the period which determines the timestep
-    int n_bisections = 10; // number of the iterations for the bisection method;
-                           // 1 / 2^10 ~ 10^{-3}
+    // we integrate approximately on the interval of +-l sizes of the leading bumb of the exponent
+    double l = 4;
+    double period_fraction = 1/2.0; // fraction of the minimal period which determines the timestep
 
-    if (signed_reverse_tau_parallel >= 0) {
-        auto f = std::function<double(const double&)>(
-            [=](const double& t) {
-                 return phi(t) - 2 * M_PI * static_cast<double>(l);
-            }
-        );
+    if (  signed_reverse_tau_parallel >= 0
+       or 1 / tau_perp > reverse_tau_parallel ) {
         double tb; // upper limit of the integration
         if (1 / tau_perp > reverse_tau_parallel) {
-            tb = tau_perp * pow(static_cast<double>(l + 1), 1/3.0);
+            tb = l * tau_perp;
         } else {
-            tb = 1 / reverse_tau_parallel * static_cast<double>(l + 1);
-        } //... thus the root of f(t) = 0 is in [0, tb], and approx is tb
-        tb = bisection(f, 0, 2 * tb, n_bisections).value(); // throws std::bad_optional_access if
-                                                            // no root is found
-        double ta = -tb;
+            tb = l / reverse_tau_parallel;
+        }
+        double ta = -tb; // lower limit of the integration
 
         // the estimate of the period of the exponent oscillations
         // (T = 2 \pi / (d\phi/dt)) at t = tb
@@ -600,96 +582,35 @@ double bks_synchrotron_emission_probability( double ri
                 return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
             }
         );
-
         auto vp1 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
-                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
-                                                  // to avoid emission caused by the current on and
-                                                  // off
+                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e));
             }
         );
         auto vp2 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
-                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
-                                                  // to avoid emission caused by the current on and
-                                                  // off
+                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e));
             }
         );
+
         return bks_emission_probability(vp1, vp2, nr, t_nodes, epsilon, omega);
-    } else if (1 / tau_perp > reverse_tau_parallel) {
-        auto f = std::function<double(const double&)>(
-            [=](const double& t) {
-                 return phi(t) - 2 * M_PI * static_cast<double>(l);
-            }
-        );
-        double tb; // upper limit of the integration
-        // we neglect tau_parallel here in the tb computation, but reserve additional space by
-        // multiplying the result by a number > 1 ...
-        tb = 1.5 * tau_perp * pow(static_cast<double>(l), 1/3.0);
-        // ... then tb is finally corrected
-        tb = bisection(f, 0, 2 * tb, n_bisections).value(); // throws std::bad_optional_access
-                                                            // if no root is found
-        double ta = -tb;
 
-        // the estimate of the period of the exponent oscillations
-        // (T = 2 \pi / (d\phi/dt)) at t = tb
-        double osc_period = 1 / (-reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
-        // number of points for the exponent integration
-        long long int nt = llround((tb - ta) / (osc_period * period_fraction));
-        // step of the integration
-        double dt = (tb - ta) / static_cast<double>(nt - 1);
-        auto t_nodes = ranges::v3::iota_view(0, nt)
-                     | ranges::v3::views::transform(
-                           [=](long long i){ return ta + dt * static_cast<double>(i); }
-                       );
-
-        auto nr = std::function<double(double)>(
-            [=](double t) {
-                return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
-            }
-        );
-
-        auto vp1 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
-                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
-                                                  // to avoid emission caused by the current on and
-                                                  // off
-            }
-        );
-        auto vp2 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
-                    * exp( -8 * pow(t / tb, 8) ); // note that artificial attenuation is added here
-                                                  // to avoid emission caused by the current on and
-                                                  // off
-            }
-        );
-        return bks_emission_probability(vp1, vp2, nr, t_nodes, epsilon, omega);
     } else { // signed_tau_parallel < 0, tau_parallel <= tau_perp
-        double t_s = sqrt(pow(tau_perp, 3) * reverse_tau_parallel / 3); // d\phi / dt = 0
-                                                                        // at t = +-t_s
-        auto f = std::function<double(const double&)>(
-            [=](const double& t) {
-                 return phi(t) - phi(t_s) - 2 * M_PI * static_cast<double>(l);
-            }
-        );
-        double tb; // the upper limit of the integration
-        // really the phase grows slightly faster than assumed below, hence the root can be always
-        // found
-        tb = sqrt(static_cast<double>(l + 1) * pow(tau_perp, 3) / (3 * t_s));
-        tb = bisection(f, t_s, t_s + tb, n_bisections).value(); // throws std::bad_optional_access
-                                                                // if no root is found
-        if (t_s - tb <= 0) { // parabolic approximation of phi(t) doesn't work
+        // d\phi / dt = 0 at t = +-t_s
+        double t_s = sqrt(pow(tau_perp, 3) * reverse_tau_parallel / 3);
+        // tb is the upper limit of the integration, t_s + l * T(t_s); the coefficient in this
+        // formula ensures continuity of tb at tau_perp = tau_parallel
+        double coef = (l - 1 / sqrt(3.0)) / (l * pow(3.0, 1/4.0));
+        double tb   = t_s + coef * l * sqrt(pow(tau_perp, 3) / t_s);
+        if (tb - t_s >= t_s) { // parabolic approximation of phi(t) doesn't work, and we should
+                               // integrate on a single interval
             double ta = -tb;
-
             // the estimate of the period of the exponent oscillations
             // (T = 2 \pi / (d\phi/dt)) at t = tb
             double osc_period = 1 / (-reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
+            osc_period = std::min(osc_period, 1 / reverse_tau_parallel);
             // number of points for the exponent integration
-            long long int nt = llround(3 * (tb - ta) / osc_period);
+            long long int nt = llround((tb - ta) / (osc_period * period_fraction));
             // step of the integration
             double dt = (tb - ta) / static_cast<double>(nt - 1);
             auto t_nodes = ranges::v3::iota_view(0, nt)
@@ -702,7 +623,6 @@ double bks_synchrotron_emission_probability( double ri
                     return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
                 }
             );
-
             auto vp1 = std::function<double(double)>(
                 [=](double t) {
                     return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
@@ -722,7 +642,52 @@ double bks_synchrotron_emission_probability( double ri
             return bks_emission_probability(vp1, vp2, nr, t_nodes, epsilon, omega);
         } else { // parabolic approximation works, and the integration should be performed over two
                  // intervals (one around +t_s and the other around -t_s)
-            return 0;
+            // the estimate of the period of the exponent oscillations
+            // (T = 2 \pi / (d\phi/dt)) at t = tb
+            double osc_period = 1 / (-reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
+            double tw = tb - t_s; // half-width of the integration interval
+            // number of points for the exponent integration
+            long long int nt = llround(2 * tw / (osc_period * period_fraction));
+            // step of the integration
+            double dt = 2 * tw / static_cast<double>(nt - 1);
+            auto t_nodes  = ranges::v3::iota_view(0, nt)
+                          | ranges::v3::views::transform(
+                              [=](long long i){ return  t_s - tw + dt * static_cast<double>(i); }
+                            );
+            auto t_nodes_ = ranges::v3::iota_view(0, nt)
+                          | ranges::v3::views::transform(
+                              [=](long long i){ return -t_s - tw + dt * static_cast<double>(i); }
+                            );
+
+            auto nr = std::function<double(double)>(
+                [=](double t) {
+                    return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
+                }
+            );
+ 
+            auto vp1 = std::function<double(double)>(
+                [=](double t) {
+                    return r(gamma_e) / gamma_e * sin(t / (m * gamma_e));
+                }
+            );
+            auto vp1_ = std::function<double(double)>(
+                [=](double t) {
+                    return r(gamma_e) / gamma_e * sin(t / (m * gamma_e));
+                }
+            );
+
+            auto vp2 = std::function<double(double)>(
+                [=](double t) {
+                    return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e));
+                }
+            );
+            auto vp2_ = std::function<double(double)>(
+                [=](double t) {
+                    return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e));
+                }
+            );
+            return bks_emission_probability(vp1 , vp2 , nr, t_nodes , epsilon, omega)
+                 + bks_emission_probability(vp1_, vp2_, nr, t_nodes_, epsilon, omega);
         }
     }
 }

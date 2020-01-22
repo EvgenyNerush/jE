@@ -11,7 +11,7 @@
  * numerically $ d^2 W / d\omega d\theta $ over the angle. The results should be the same for both
  * methods that allows to find the right normalization.
  *
- * This test consumes about 50 MB of memory and with Xeon X5550 processor takes about 50 s to
+ * This test consumes about 35 MB of memory and with Xeon X5550 processor takes about 380 s to
  * execute.
  */
 
@@ -102,7 +102,7 @@ int main() {
     double norm = f_fc / f_0;
     double bks_I = 0;
     for (auto omega: xs_omega) {
-        bks_I += b * omega * norm; // in t_{rf} normalization $\hbar \omega$ is $b \omega$.
+        bks_I += b * omega * norm; // in t_{rf} normalization, $\hbar \omega$ is $b \omega$.
     }
 
     steady_clock::time_point t2 = steady_clock::now();

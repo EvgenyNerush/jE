@@ -52,6 +52,9 @@ int main(){
 
         auto f2 = function<double(double)>( [](double t) { return t; } );
         assert(trap_rule(f2, t_nodes) == 2);
+
+        vector<double> t_nodes_({0, 2, 3});
+        assert(trap_rule(f1, t_nodes_) == 3);
     }
 
     { // Bisection to find the roots of f(x) = 0
@@ -171,38 +174,6 @@ int main(){
       // w_ and w0 differs on about several percents, whereas w1 should be equal to w0
       assert(fabs(w1 - w0) < 1e-3 * (w_ - w0));
      }
-    }
-
-    { // Here we compare results of bks_synchrotron_emission_probability in "Cherenkov zone" with
-      // the results obtained with Wolfram Cloud, see
-      // https://www.wolframcloud.com/obj/4df105db-f7ae-4f5c-b700-1661857f91d7
-      double eps_s_fraction = 0.5; // \hbar \omega' / mc^2 \gamma_e
-      double chi = sqrt(12 * M_PI) * eps_s_fraction; // ...thus tau_parallel = tau_perp, for
-                                                     // theta = 0 and delta_ri = 0
-      double gamma_e = 1e4;
-      double b = chi / gamma_e;
-      double omega = gamma_e / b * eps_s_fraction / (1 + eps_s_fraction);
-
-      // ri2 and ri3 lead to the chenge of the signum of the linear term in the phase; ri2 yields
-      // the same value of tau_parallel as ri = 1, and ri3 yields 1/9 of that value for
-      // tau_parallel
-      double ri2 = 1 + 1 / pow(gamma_e, 2);
-      double ri3 = 1 + 5 / pow(gamma_e, 2);
-      double w1 = bks_synchrotron_emission_probability(  1, 1, b, gamma_e, 0, omega);
-      double w2 = bks_synchrotron_emission_probability(ri2, 1, b, gamma_e, 0, omega);
-      double w3 = bks_synchrotron_emission_probability(ri3, 1, b, gamma_e, 0, omega);
-
-      double a1
-          = 0.5 * (1 + pow(1 / eps_s_fraction, 2)); // (\eps^2 + \eps'^2) / 2 \eps^2, see
-                                                    // equation for W_m in bks_emission_probability
-                                                    // from ../src/radiation.hpp
-      double a2 = 0.5 * pow(omega * b / gamma_e, 2);
-      // function that computes value \propto W_m from values of the integrals I and J, see ref. to
-      // wolframcloud above
-      auto f = [=](double I, double J) { return a1 * J * J + a2 * I * I; };
-
-      cout << w1 / w2 << '\t' << f(0.0464, 0.0236) / f(0.0373, 0.621) << '\n'
-           << w1 / w3 << '\t' << f(0.0464, 0.0236) / f(0.0670, 1.07) << '\n';
     }
 
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";

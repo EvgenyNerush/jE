@@ -3,7 +3,7 @@
  * Here we check quantum asymptotic (chi >> 1) of Baier-Katkov-Strakhovenko formula for synchrotron
  * emission probability.
  *
- * This test consumes about 50 MB of memory and with Xeon X5550 processor takes about 65 s to
+ * This test consumes about 35 MB of memory and with Xeon X5550 processor takes about 400 s to
  * execute.
  */
 
