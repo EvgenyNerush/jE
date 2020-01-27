@@ -3,7 +3,7 @@
  * Here we check quantum asymptotic (chi >> 1) of Baier-Katkov-Strakhovenko formula for synchrotron
  * emission probability.
  *
- * This test consumes about 35 MB of memory and with Xeon X5550 processor takes about 400 s to
+ * This test consumes about 6 MB of memory and with Xeon X5550 processor takes about 30 s to
  * execute.
  */
 
@@ -30,9 +30,9 @@ int main() {
     double    chi      = b * gamma_e;
     double    om_max   = gamma_e / b;
     double    om_0     = 0.5 * om_max; // frequency which is used in the normalization
-    long long n        = 1'000'000;    // number of the photons to emit
-    size_t    n_in_bin = 10'000;       // number of particles in a bin for histogram_1D
-    double    acc_err  = 0.1;         // accepted relative error
+    long long n        = 100'000;      // number of the photons to emit
+    size_t    n_in_bin = 1'000;        // number of particles in a bin for histogram_1D
+    double    acc_err  = 0.1;          // accepted relative error
 
     // target distributions
     auto bks_td = bks_synchrotron_td(1, 1, b, gamma_e);

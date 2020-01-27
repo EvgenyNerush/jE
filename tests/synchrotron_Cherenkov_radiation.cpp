@@ -11,7 +11,7 @@
 using namespace std;
 
 int main(){
-    double acceptable_relative_error = 0.1;
+    double acceptable_relative_error = 0.03;
     double omega_s_fraction = 0.5; // \hbar \omega' / mc^2 \gamma_e
     double chi = omega_s_fraction / M_PI * sqrt(3 / 16.0); // ...thus tau_parallel = tau_perp,
                                                            // for theta = 0 and delta_ri = 0
@@ -50,11 +50,11 @@ int main(){
                       * pow(omega_s / omega, 2) * (a1 * J * J + a2 * I * I);
              };
 
-    double f0 = f(0.0974, 0.0523);
+    double f0 = f(0.0975, 0.0549);
     double f1 = f(0.824 , 0.230 );
-    double f2 = f(1.25  , 0.0833);
-    double f3 = f(0.574 , 0.575 );
-    double f4 = f(0.408 , 0.817 );
+    double f2 = f(1.25  , 0.0850);
+    double f3 = f(0.574 , 0.572 );
+    double f4 = f(0.408 , 0.816 );
     double f5 = f(0.201 , 0.810 ) * 2;
 
     vector<double> ws({w0, w1, w2, w3, w4, w5});
@@ -64,17 +64,16 @@ int main(){
         errs.push_back(fabs(ws[i] - fs[i]) / fs[i]);
     }
     bool is_ok = true;
-    // f0 value is small, and w0 relative error is big
-    is_ok = is_ok and errs[0] < 2 * acceptable_relative_error;
-    for (int i = 1; i < 5; ++i) {
+    for (int i = 0; i < 5; ++i) {
         is_ok = is_ok and errs[i] < acceptable_relative_error;
     }
 
     if (!is_ok) {
         cout << "synchrotron_Cherenkov_radiation test: \x1b[1;31mfailed\x1b[0m\n";
-        cout << setw(12) << left << "w num       w theor     rel err\n";
+        cout << setw(12) << left << "i           w num       w theor     rel err\n";
         for (int i = 0; i < 5; ++i) {
-            cout << setw(12) << left << ws[i]
+            cout << setw(12) << left << i
+                 << setw(12) << left << ws[i]
                  << setw(12) << left << fs[i]
                  << setw(12) << left << errs[i] << '\n';
         }

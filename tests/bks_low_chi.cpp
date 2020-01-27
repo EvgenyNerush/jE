@@ -11,7 +11,7 @@
  * numerically $ d^2 W / d\omega d\theta $ over the angle. The results should be the same for both
  * methods that allows to find the right normalization.
  *
- * This test consumes about 35 MB of memory and with Xeon X5550 processor takes about 380 s to
+ * This test consumes about 6 MB of memory and with Xeon X5550 processor takes about 130 s to
  * execute.
  */
 
@@ -38,10 +38,10 @@ int main() {
     double    gamma_e  = 2e3;
     double    chi      = b * gamma_e;      // hence (1 - 6 chi + 48 chi^2) = (1 - 0.12 + 0.0192)
     double    om_c     = omega_c(gamma_e); // chi << 1, thus om_c is the scale of the spectrum
-    double    om_0     = 0.5 * om_c;       // frequency which is used in the normalization
-    long long n        = 1'000'000;        // number of the photons to emit
-    size_t    n_in_bin = 10'000;           // number of particles in a bin for histogram_1D
-    double    acc_err  = 0.01;             // accepted relative error
+    double    om_0     = 0.3 * om_c;       // frequency which is used in the normalization
+    long long n        = 100'000;          // number of the photons to emit
+    size_t    n_in_bin = 1'000;            // number of particles in a bin for histogram_1D
+    double    acc_err  = 0.02;             // accepted relative error
 
     // target distributions
     auto bks_td = bks_synchrotron_td(1, 1, b, gamma_e);
@@ -76,7 +76,8 @@ int main() {
     auto bin_boundaries = histogram_1D(n_in_bin, xs_omega);
     // slight correction of om_0 to be in the middle between two bin boundaries
     size_t i = 0;
-    for ( ; i < bin_boundaries.size() - 1 and bin_boundaries[i] < om_0; ++i ) { };
+    for ( ; i < bin_boundaries.size() - 1 and bin_boundaries[i] < om_0; ++i ) {
+    };
     om_0 = 0.5 * (bin_boundaries[i] + bin_boundaries[i - 1]);
     // non-normalized photon distribution function $ dW/d\omega $ at om_0
     double f_0 = static_cast<double>(n_in_bin) / (bin_boundaries[i] - bin_boundaries[i - 1]);

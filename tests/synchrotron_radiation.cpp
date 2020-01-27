@@ -11,7 +11,7 @@
 using namespace std;
 
 int main() {
-    double accepted_relative_error = 1e-2;
+    double accepted_relative_error = 0.005;
     double gamma_e = 10'000;
     double b = 1e-4; // formally this yield chi = 1, but it is ok here because we compare two
                      // classical formulas with each other
@@ -22,7 +22,8 @@ int main() {
         thetas.push_back(0.5 * static_cast<double>(i) / gamma_e);
     }
     vector<double> omegas;
-    for (double x = 0.025; x < 2; x *= 4) {
+    //for (double x = 0.025; x < 2; x *= 4) {
+    for (double x = 0.1; x < 3; x *= 2) {
         omegas.push_back(x * oc);
     }
 
