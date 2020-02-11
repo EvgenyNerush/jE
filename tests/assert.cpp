@@ -176,6 +176,30 @@ int main(){
      }
     }
 
+    { // We check here in the classical limit (i.e. recoil is negligible) that bks_synchrotron_td
+      // doesn't change in non-normalized units if b and m are increased simultaneously by the same
+      // factor, both in synchrotron and synchrotron-Cherenkov regimes, because the curvature
+      // radius remains the same in this case. In the normalized units used here one should also
+      // decrease omega by the same factor as b increased.
+      double b       = 1e-7;
+      double gamma_p = 1e3;
+      double theta   = 0.2 / gamma_p;
+      double omega   = 0.2 * omega_c(gamma_p);
+      double ri      = 1 + 3 / pow(gamma_p, 2); // hence varsigma < 0; 3 is just a number > 1/2
+      double m       = 10;
+
+      function<double(tuple<double, double>)> w11  = bks_synchrotron_td( 1, 1,     b, gamma_p);
+      function<double(tuple<double, double>)> wm1  = bks_synchrotron_td( 1, m, m * b, gamma_p);
+      function<double(tuple<double, double>)> w1ri = bks_synchrotron_td(ri, 1,     b, gamma_p);
+      function<double(tuple<double, double>)> wmri = bks_synchrotron_td(ri, m, m * b, gamma_p);
+      auto theta_omega   = make_tuple(theta,     omega);
+      auto theta_omega_m = make_tuple(theta, omega / m);
+      double ratio1  = wm1 (theta_omega_m) / w11 (theta_omega);
+      double ratiori = wmri(theta_omega_m) / w1ri(theta_omega);
+      assert(fabs(ratio1  - 1) < 1e-4);
+      assert(fabs(ratiori - 1) < 1e-4);
+    }
+
     cout << "assertions: \x1b[32mpassed\x1b[0m\n";
     return 0;
 }

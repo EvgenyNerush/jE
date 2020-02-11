@@ -442,8 +442,8 @@ auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
  * @param t_nodes values of @f$ t_0, t_1, t_2, ... @f$ used for the computation of the integrals;
  *                this function can take @p t_nodes as @p range or @p view (from C++20 ranges) or
  *                as @p std::vector, with doubles within
- * @param epsilon the normalized initial energy of the emitting particle, @f$ m c^2 \gamma_e /
- *                (\hbar / t_{rf}) = m \gamma_e / b @f$
+ * @param epsilon the initial energy of the emitting particle in the frequency units, @f$ m c^2
+ *                \gamma_e / (\hbar / t_{rf}) = m \gamma_e / b @f$
  * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon, @f$ \omega_m
  *                @f$, normalized to the reverse radiation formation time
  */
@@ -689,7 +689,7 @@ double bks_synchrotron_emission_probability( double ri
  * The normalization of this function (which does not matter for the Metropolis algorithm, but can
  * be important for other applications) is chosen such that @p bks_synchrotron_td integrated over
  * @p theta and @p omega yield the overall probability of photon emission during single full circle
- * path of the electron.
+ * path of the emitting particle.
  *
  * For parameters description, see #bks_synchrotron_emission_probability.
  */
@@ -697,7 +697,7 @@ std::function< double( std::tuple<double, double> ) >
 bks_synchrotron_td( double ri
                   , double m
                   , double b
-                  , double gamma_e
+                  , double gamma_p
                   ) {
     // The normalization can be obtained analogous to jackson1483_num, see comments there. Note
     // that the generated photons are evenly distributed around the electron trajectory (which is a
@@ -710,9 +710,9 @@ bks_synchrotron_td( double ri
         [=]( std::tuple<double, double> theta_omega ) {
             double theta = std::get<0>(theta_omega);
             double omega = std::get<1>(theta_omega);
-            if (omega > 0 and omega * b < gamma_e) {
-                return 2 * pow(omega / M_PI, 2) * cos(theta)
-                         * bks_synchrotron_emission_probability(ri, m, b, gamma_e, theta, omega);
+            if (omega > 0 and omega * b < m * gamma_p) {
+                return 2 * pow(omega / M_PI, 2) * cos(theta) / m
+                         * bks_synchrotron_emission_probability(ri, m, b, gamma_p, theta, omega);
             } else {
                 return 0.0;
             }
