@@ -11,7 +11,7 @@
  * numerically $ d^2 W / d\omega d\theta $ over the angle. The results should be the same for both
  * methods that allows to find the right normalization.
  *
- * This test consumes about 6 MB of memory and with Xeon X5550 processor takes about 130 s to
+ * This test consumes about 16 MB of memory and with Xeon X5550 processor takes about 120 s to
  * execute.
  */
 
@@ -39,8 +39,8 @@ int main() {
     double    chi      = b * gamma_e;      // hence (1 - 6 chi + 48 chi^2) = (1 - 0.12 + 0.0192)
     double    om_c     = omega_c(gamma_e); // chi << 1, thus om_c is the scale of the spectrum
     double    om_0     = 0.3 * om_c;       // frequency which is used in the normalization
-    long long n        = 100'000;          // number of the photons to emit
-    size_t    n_in_bin = 1'000;            // number of particles in a bin for histogram_1D
+    long long n        = 400'000;          // number of the photons to emit
+    size_t    n_in_bin = 4'000;            // number of particles in a bin for histogram_1D
     double    acc_err  = 0.02;             // accepted relative error
 
     // target distributions

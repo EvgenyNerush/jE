@@ -11,7 +11,7 @@
 using namespace std;
 
 int main() {
-    double acc_err = 0.02; // acceptable error
+    double acc_err = 0.01; // acceptable error
     double gamma_e = 1e5;
 	double chi     = 10;
     double b       = chi / gamma_e;

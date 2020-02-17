@@ -39,7 +39,7 @@ int main(){
     // coefficients a1 and a2 arises in W_m 
     double a1 = (1 + pow((gamma_e - omega * b) / gamma_e, 2))
               * pow(tau_perp * tau_perp / gamma_e, 2);
-    double a2 = pow(omega * b * b * tau_perp / (gamma_e * gamma_e), 2);
+    double a2 = pow(omega * b * tau_perp / (gamma_e * gamma_e), 2);
     // f is a function that computes value of W_m from values of the integrals I and J, see ref. to
     // wolframcloud above; actually for chi used here the spin term which is proportional to I^2,
     // is negligible in comparison with the main term proportional to J^2 See also

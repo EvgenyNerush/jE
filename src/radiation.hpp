@@ -442,8 +442,9 @@ auto unity = std::function<double(Types...)>( [](Types... _) { return 1; } );
  * @param t_nodes values of @f$ t_0, t_1, t_2, ... @f$ used for the computation of the integrals;
  *                this function can take @p t_nodes as @p range or @p view (from C++20 ranges) or
  *                as @p std::vector, with doubles within
- * @param epsilon the initial energy of the emitting particle in the frequency units, @f$ m c^2
- *                \gamma_e / (\hbar / t_{rf}) = m \gamma_e / b @f$
+ * @param m       particle mass normalized to the electron mass
+ * @param b       magnetic field used in the normalization, normalized to the critical field
+ * @param gamma_p the Lorentz factor of the emitted particle
  * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon, @f$ \omega_m
  *                @f$, normalized to the reverse radiation formation time
  */
@@ -452,9 +453,13 @@ double bks_emission_probability( std::function<double(double)> vp1
                                , std::function<double(double)> vp2
                                , std::function<double(double)> nr
                                , V                             t_nodes
-                               , double                        epsilon
+                               , double                        m
+                               , double                        b
+                               , double                        gamma_p
                                , double                        omega
                                ) {
+    double epsilon = m * gamma_p / b; // the initial energy of the emitting particle in the
+                                      // frequency units
     double epsilon_s = epsilon - omega;
     double omega_s   = omega * epsilon / epsilon_s;
 
@@ -480,7 +485,7 @@ double bks_emission_probability( std::function<double(double)> vp1
 
     return alpha * M_PI / (8 * omega) * pow(omega_s / omega, 2)
                * ( (1 + pow(epsilon_s / epsilon, 2))   * (norm(c1) + norm(c2))
-                 + pow(omega / (epsilon * epsilon), 2) * norm(c3)
+                 + pow(omega / (epsilon * gamma_p), 2) * norm(c3)
                  );
 }
 
@@ -532,20 +537,20 @@ double vacuum_refractive_index( double b
   * @param m       the rest mass of the emitting particle (in electron masses), thus set to 1 for
   *                an electron
   * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
-  * @param gamma_e the electron Lorentz factor
+  * @param gamma_p the Lorentz factor of the emitting particle
   * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p
   *                theta = 0 is the direction of the tangent to the trajectory
-  * @param omega   @f$ 0 < \omega < \gamma_e / b @f$, frequency of the emitted photon normalized to
+  * @param omega   @f$ 0 < \omega < \gamma_p / b @f$, frequency of the emitted photon normalized to
   *                the reverse radiation formation time
  */
 double bks_synchrotron_emission_probability( double ri
                                            , double m
                                            , double b
-                                           , double gamma_e
+                                           , double gamma_p
                                            , double theta
                                            , double omega
                                            ) {
-    double epsilon   = m * gamma_e / b; // m c^2 \gamma_e / (\hbar / t_rf)
+    double epsilon   = m * gamma_p / b; // m c^2 \gamma_p / (\hbar / t_rf)
     double epsilon_s = epsilon - omega;
     double omega_s   = omega * epsilon / epsilon_s;
 
@@ -554,10 +559,10 @@ double bks_synchrotron_emission_probability( double ri
     double delta_ri = ri - 1;
     // +-1 / tau_parallel, to avoid the point tau_parallel = \infty
     double signed_reverse_tau_parallel
-        = omega_s / (4 * M_PI) * ( theta * theta + 1 / (gamma_e * gamma_e) - 2 * delta_ri);
+        = omega_s / (4 * M_PI) * ( theta * theta + 1 / (gamma_p * gamma_p) - 2 * delta_ri);
     double reverse_tau_parallel = fabs(signed_reverse_tau_parallel);
     double varsigma = (signed_reverse_tau_parallel >= 0) ? (+1) : (-1);
-    double tau_perp = gamma_e * pow(12 * M_PI * m * m / (omega_s * r(gamma_e)), 1/3.0);
+    double tau_perp = gamma_p * pow(12 * M_PI * m * m / (omega_s * r(gamma_p)), 1/3.0);
 
     // we integrate approximately on the interval of +-l scales of the descent of the integrals
     double l = 3;
@@ -595,13 +600,13 @@ double bks_synchrotron_emission_probability( double ri
 
         auto nr = std::function<double(double)>(
             [=](double t) {
-                return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
+                return ri * m * r(gamma_p) * sin(t / (m * gamma_p)) * cos(theta);
             }
         );
 
         auto vp1 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
@@ -609,7 +614,7 @@ double bks_synchrotron_emission_probability( double ri
         );
         auto vp1_ = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
@@ -618,7 +623,7 @@ double bks_synchrotron_emission_probability( double ri
 
         auto vp2 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
@@ -626,14 +631,14 @@ double bks_synchrotron_emission_probability( double ri
         );
         auto vp2_ = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
-        return bks_emission_probability(vp1 , vp2 , nr, t_nodes , epsilon, omega)
-             + bks_emission_probability(vp1_, vp2_, nr, t_nodes_, epsilon, omega);
+        return bks_emission_probability(vp1 , vp2 , nr, t_nodes , m, b, gamma_p, omega)
+             + bks_emission_probability(vp1_, vp2_, nr, t_nodes_, m, b, gamma_p, omega);
     } else {
         // parabolic approximation of phi(t) at t_s doesn't work, and we should integrate over
         // single interval;
@@ -655,12 +660,12 @@ double bks_synchrotron_emission_probability( double ri
 
         auto nr = std::function<double(double)>(
             [=](double t) {
-                return ri * m * r(gamma_e) * sin(t / (m * gamma_e)) * cos(theta);
+                return ri * m * r(gamma_p) * sin(t / (m * gamma_p)) * cos(theta);
             }
         );
         auto vp1 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
@@ -668,13 +673,13 @@ double bks_synchrotron_emission_probability( double ri
         );
         auto vp2 = std::function<double(double)>(
             [=](double t) {
-                return r(gamma_e) / gamma_e * sin(theta) * cos(t / (m * gamma_e))
+                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
-        return bks_emission_probability(vp1, vp2, nr, t_nodes, epsilon, omega);
+        return bks_emission_probability(vp1, vp2, nr, t_nodes, m, b, gamma_p, omega);
     }
 }
 
