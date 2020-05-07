@@ -787,7 +787,7 @@ bks_dipole_emission_probability( double ri
                                , double omega
                                ) {
     double delta_ri = ri - 1;
-   	 
+	double k_L = omega_L;   	 
     // tb is the upper limit of the integration
     double tb = 0;
     // ta is the lower limit of the integration
@@ -836,7 +836,7 @@ bks_dipole_emission_probability( double ri
         }
     );
     
-    return bks_emission_probability(vp1 , 0 , nr, t_nodes , m, b, gamma_p, omega); 
+    return bks_emission_probability(vp1 , 0 , nr, t_nodes , m, b, gamma_0, omega); 
 }
 
 /**
@@ -849,22 +849,18 @@ std::function< double( std::tuple<double, double> ) >
 bks_dipole_td( double ri
              , double m
              , double b
+			 , double x_L
+			 , double omega_L
              , double gamma_p
              ) {
-    // The normalization can be obtained analogous to jackson1483_num, see comments there. Note
-    // that the generated photons are evenly distributed around the electron trajectory (which is a
-    // circle), i.e. they are evenly distributed in the angle $ \phi $ which in turn corresponds to
-    // the direction of the photon wavevector in the plane of the electron trajectory. Thus, the
-    // solid angle is $ d\Omega = \cos \theta \, d\phi d\theta $, and for the emission probability
-    // we get $ d^2 W / d\theta d\omega = 2 W_m \cos \theta \omega^2 / \pi^2 $ with $ W_m $ the
-    // emission probability computed with bks_synchrotron_emission_probability function.
+    // The normalization is needed ! 
     return std::function< double( std::tuple<double, double> ) >(
         [=]( std::tuple<double, double> theta_omega ) {
             double theta = std::get<0>(theta_omega);
             double omega = std::get<1>(theta_omega);
             if (omega > 0 and omega * b < m * gamma_p) {
                 return 2 * pow(omega / M_PI, 2) * cos(theta) / m
-                         * bks_synchrotron_emission_probability(ri, m, b, gamma_p, theta, omega);
+                         * bks_dipole_emission_probability(ri, m, b, x_L, omega_L, gamma_p, theta, omega);
             } else {
                 return 0.0;
             }
