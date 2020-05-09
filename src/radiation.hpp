@@ -750,31 +750,53 @@ double bks_jackson1483_num(double b, double gamma_e, double theta, double omega)
  * Probability of the dipole emission by the particle colliding with a laser pulse with vacuum
  * refraction index taken into account.
  * The laser pulse has the following parameters:
- * Electric field E_y = a_0 cos^2\left( \frac{\pi \ksi}{2 x_L} \right) cos(k_L \ksi),
- * where
- * @param \ksi  omega_L * t - x * omega_L / c 
- * @param k_L   the laser wave vector
- * @param x_L   the FWHM for the Electric field
+ * Electric field @f$ E_y = a_0 cos^2\left( \frac{\pi \ksi}{2 x_L} \right) cos(k_L \ksi) @f$,
+ * where @f$ \ksi = \omega_L t - x omega_L / c @f$.
  * The vector potental for this laser is given by:
+ * @f[
  * A_y = 0.25 * a_0 * \left( \frac{2 sin(k_L \ksi)}{k_L} + 
  * 					\frac{x_L sin((k_L + \pi/x_L)\ksi)}{k_L x_L + \pi} + 
  * 					\frac{x_L sin((k_L - \pi/x_L)\ksi)}{x_L k_L -\pi} 
  * 					 \right)
  * = a_0 \times f(\ksi)
- * For such field the equation of motion for a charged particle are as follows:
- * p_y = -\frac{e}{c} A_y (\ksi),
- * p_x = p_0 + \frac{e^2}{2(\varepsilon_0 / c - p_0) c^2} A_y^2(\ksi),
- * To study dipole emission the particle energy is taken to be $gamma_0 \gg a_0^2$, while the field
- * strength is $a_0 \sim 1$. With that in mind we can simplify the equation of motion:
- * p_x = - mc \gamma_0 \beta_0,
- * p_y = - mc * a_0 * f(2\omega_0 * t),
- * x(t) = - c \beta_0 * t,
- * y(t) = - \frac{a_0}{2\gamma_0} \left( \frac{sin(k_L \omega_0 t)^2}{k_L^2}
- * 			- \frac{x_L^2 (cos((k_L - \pi/x_L) 2\omega_0 t))}{4 (\pi - x_L k_L)^2}
- * 			- \frac{x_L^2 (cos((k_L + \pi/x_L) 2\omega_0 t))}{4 (\pi + x_L k_L)^2}
- * 								  \right)
- * 
+ * @f]
  *
+ * For such field the equation of motion for a charged particle are as follows:
+ * @f[
+ *     p_y = -\frac{e}{c} A_y (\ksi),
+ * @f]
+ *
+ * @f[
+ * p_x = p_0 + \frac{e^2}{2(\varepsilon_0 / c - p_0) c^2} A_y^2(\ksi),
+ * @f]
+ * To study dipole emission the particle energy is taken to be $gamma_0 \gg a_0^2$, while the field
+ * strength is  @f$a_0 \sim 1@f$. With that in mind we can simplify the equation of motion:
+ * @f[
+ *     p_x(t) = - mc \gamma_0 \beta_0,
+ * @f]
+ *
+ * @f[
+ *     p_y(t) = - mc  a_0 f(2\omega_0 * t),
+ * @f]
+ *
+ * @f[
+ *     x(t) = - c \beta_0 t,
+ * @f]
+ * 
+ * @f[
+ *     y(t) = - \frac{a_0}{2\gamma_0} \left( \frac{sin(k_L \omega)^2}{k_L^2}   \\
+ *     	- \frac{x_L^2 (cos((k_L - \pi/x_L) 2\omega_0 t))}{4 (\pi - x_L k_L)^2} \\
+ * 		- \frac{x_L^2 (cos((k_L + \pi/x_L) 2\omega_0 t))}{4 (\pi + x_L k_L)^2}
+ * @f]
+ * @param ri      index of refraction
+ * @param m       particle mass
+ * @param b       normalized laser field
+ * @param omega_L laser frequency
+ * @param gamma_0 particle initial Lorentz factor
+ * @param k_L     the laser wave vector
+ * @param x_L     the FWHM for the Electric field
+ * @param theta   angle in the plane perpendicular to the z direction (direction of a constant momentum).
+ * @param omega   > 0, normalized frequency of the emitted photon
  */
 double 
 bks_dipole_emission_probability( double ri
@@ -792,7 +814,6 @@ bks_dipole_emission_probability( double ri
     double tb = 0;
     // ta is the lower limit of the integration
     double ta = x_L/c;
-   
     long long int nt = llround(x_L * k_L * 100);
     // step of the integration
     double dt = (tb - ta) / static_cast<double>(nt - 1);
@@ -813,7 +834,6 @@ bks_dipole_emission_probability( double ri
 				 );
 			}
 	);
-	
 	auto v_y = std::function<double(double)>(
 		[=](double t) {
 			return - 0.5 * (b/gamma_0) * 0.25 * ( 
@@ -823,19 +843,16 @@ bks_dipole_emission_probability( double ri
 				  );
 			}
 	);
-
     auto nr = std::function<double(double)>(
         [=](double t) {
             return ri * (x(t) * cos(theta) + y(t) * sin(theta));
         }
     );
-
     auto vp1 = std::function<double(double)>(
         [=](double t) {
             return v_y(t) * cos(theta) + sin(theta);
         }
-    );
-    
+    ); 
     return bks_emission_probability(vp1 , 0 , nr, t_nodes , m, b, gamma_0, omega); 
 }
 
@@ -853,7 +870,7 @@ bks_dipole_td( double ri
 			 , double omega_L
              , double gamma_p
              ) {
-    // The normalization is needed ! 
+    // The normalization is needed!
     return std::function< double( std::tuple<double, double> ) >(
         [=]( std::tuple<double, double> theta_omega ) {
             double theta = std::get<0>(theta_omega);
