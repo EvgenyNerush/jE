@@ -813,26 +813,30 @@ bks_dipole_emission_probability( double ri
     // tb is the upper limit of the integration
     double tb = 0;
     // ta is the lower limit of the integration
-    double ta = x_L/c;
+    double ta = x_L;
     long long int nt = llround(x_L * k_L * 100);
     // step of the integration
     double dt = (tb - ta) / static_cast<double>(nt - 1);
-    auto t_nodes  = ranges::v3::iota_view(0, nt)
-                  | ranges::v3::views::transform(
+    auto t_nodes = ranges::v3::iota_view(0, nt)
+                 | ranges::v3::views::transform(
                       [=](long long i){ return  ta + dt * static_cast<double>(i); }
-                    );   
-	auto x = std::finction<double(double)>(
+                    ); 
+
+	auto x = std::function<double(double)>(
 		[=](double t) {
 			return t;
+		}
 	);
+	double etap = 0.0625 * (x_L / (M_PI + x_L * k_L)) * (x_L / (M_PI + x_L * k_L));
+	double etam = 0.0625 * (x_L / (M_PI - x_L * k_L)) * (x_L / (M_PI - x_L * k_L));
 	auto y = std::function<double(double)>(
 		[=](double t) {
 			return - 0.5 * (b/gamma_0) * (
-				   pow(sin(k_L * omega_0 * t)/k_L,2.0)
-				 - pow(x_L / (4 (M_PI - x_L * k_L)), 2.0) * cos( (k_L - M_PI/x_L)*2*omega_0*t)
-				 - pow(x_L / (4 (M_PI + x_L * k_L)), 2.0) * cos( (k_L + M_PI/x_L)*2*omega_0*t)
+				   (sin(k_L * omega_L * t)/k_L) * (sin(k_L * omega_L * t)/k_L)
+				 - etam * cos( (k_L - M_PI/x_L)*2*omega_L*t)
+				 - etap * cos( (k_L + M_PI/x_L)*2*omega_L*t)
 				 );
-			}
+		}
 	);
 	auto v_y = std::function<double(double)>(
 		[=](double t) {
@@ -841,7 +845,7 @@ bks_dipole_emission_probability( double ri
 				  + x_L * sin( (k_L - M_PI / x_L) * 2*omega_L*t)/(k_L * x_L - M_PI)
 				  + x_L * sin( (k_L + M_PI / x_L) * 2*omega_L*t)/(k_L * x_L + M_PI)
 				  );
-			}
+		}
 	);
     auto nr = std::function<double(double)>(
         [=](double t) {

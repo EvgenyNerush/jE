@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 #include <cmath>
-#include "../jE/src/radiation.hpp"
+#include "../src/radiation.hpp"
 #include <thread>
 using namespace std;
 
@@ -41,7 +41,7 @@ int main() {
 
     // angle varies from 0 to theta_b
     const double theta_b = 0.5 * M_PI;
-    size_t m = 87; // number of dots in angle rangecherenkov_angle;
+    size_t m = 87; // number of dots in angle;
     size_t n = 99; // number of dots in frequency ranges
     // angle and omega for the second plot
 
@@ -59,7 +59,6 @@ int main() {
     );
 
     parameters << b           << '\n'
-               << theta_b     << '\n'
                << m           << '\n'
                << n           << '\n'
                << gamma_e     << '\n'
@@ -71,7 +70,7 @@ int main() {
     for (auto omega: omegas) {
         for (auto theta: thetas) {
             vacuum  << I( 1,  b, theta, omega) << '\n';
-            ref_ind << I(ri,  b, theta, omega) << '\n';
+//            ref_ind << I(ri,  b, theta, omega) << '\n';
         }
     }
 
