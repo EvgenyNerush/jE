@@ -831,7 +831,7 @@ bks_dipole_emission_probability( double ri
 	auto y = std::function<double(double)>(
 		[=](double t) {
 			return - 0.5 * (b/gamma_0) * (
-				   0.5 * b * b * cos(2 t/ b)
+				   0.5 * b * b * cos(2 * t/ b)
 				 - etam * cos((1/b - M_PI/x_L) * 2 * t)
 				 - etap * cos((1/b + M_PI/x_L) * 2 * t)
 				 );
@@ -842,7 +842,7 @@ bks_dipole_emission_probability( double ri
 			return - 0.5 * (b/gamma_0) * 0.25 * ( 
 					2 * b * sin(2 * t / b)
 				  + x_L * sin( (1/b - M_PI / x_L) * 2 * t)/(x_L / b - M_PI)
-				  + x_L * sin( (1/b + M_PI / x_L) * 2 * t)/(k_L / b + M_PI)
+				  + x_L * sin( (1/b + M_PI / x_L) * 2 * t)/(x_L / b + M_PI)
 				  );
 		}
 	);

@@ -37,7 +37,6 @@ int main() {
 	double mass = 1; // particle mass ratio to the electron mass
 	double coeff = 2; // > 1
 	double width_L = b * coeff; // normalized laser width
-	double omega_L = 1.0 / b; // normalized laser frequency 
 
     // angle varies from 0 to theta_b
     const double theta_b = 0.5 * M_PI;
@@ -53,7 +52,7 @@ int main() {
 
     auto I = function<double(double, double, double, double)> (
         [=](double ri, double b, double theta, double omega) {
-            auto f = bks_dipole_td(ri, mass, b, width_L, omega_L, gamma_e);
+            auto f = bks_dipole_td(ri, mass, b, width_L,gamma_e);
             return omega * b * f(make_tuple(theta, omega)) / (2 * M_PI * r(gamma_e));
         }
     );
@@ -64,7 +63,6 @@ int main() {
                << gamma_e     << '\n'
                << omega_left  << '\n'
                << omega_right << '\n'
-               << omega_L     << '\n'
                << width_L     << '\n'
                ;
     for (auto omega: omegas) {
