@@ -750,24 +750,25 @@ double bks_jackson1483_num(double b, double gamma_e, double theta, double omega)
  * Probability of the dipole emission by the particle colliding with a laser pulse with vacuum
  * refraction index taken into account.
  * The laser pulse has the following parameters:
- * Electric field @f$ E_y = a_0 cos^2\left( \frac{\pi \ksi}{2 x_L} \right) cos(k_L \ksi) @f$,
- * where @f$ \ksi = \omega_L t - x omega_L / c @f$.
+ * Electric field: @f$ E_y = a_0 cos^2\left( \frac{\pi \ksi}{2 x_L} \right) cos(k_L \ksi) @f$,
+ * where @f$ \ksi = ( t - x(t) ) @f$.
+ * Note: in the units used in this code the laser frequency (or wave vectro) equals 1/a_0.
  * The vector potental for this laser is given by:
  * @f[
- * A_y = 0.25 * a_0 * \left( \frac{2 sin(k_L \ksi)}{k_L} + 
- * 					\frac{x_L sin((k_L + \pi/x_L)\ksi)}{k_L x_L + \pi} + 
- * 					\frac{x_L sin((k_L - \pi/x_L)\ksi)}{x_L k_L -\pi} 
- * 					 \right)
- * = a_0 \times f(\ksi)
+ * A_y = 0.25 * a_0 * \left(2 a_0 sin(\ksi/a_0) + 
+ * 					\frac{x_L sin((1/a_0 + \pi/x_L)\ksi)}{x_L/a_0 + \pi} + 
+ * 					\frac{x_L sin((1/a_0 - \pi/x_L)\ksi)}{x_L/a_0 - \pi} 
+ * 					  \right)
+ * = a_0 * f(\ksi)
  * @f]
  *
  * For such field the equation of motion for a charged particle are as follows:
  * @f[
- *     p_y = -\frac{e}{c} A_y (\ksi),
+ *     p_y = - mc a_0 f(\ksi),
  * @f]
  *
  * @f[
- * p_x = p_0 + \frac{e^2}{2(\varepsilon_0 / c - p_0) c^2} A_y^2(\ksi),
+ *     p_x = p_0 + \frac{a_0^2}{2(\varepsilon_0 - p_0)} f^2(\ksi),
  * @f]
  * To study dipole emission the particle energy is taken to be $gamma_0 \gg a_0^2$, while the field
  * strength is  @f$a_0 \sim 1@f$. With that in mind we can simplify the equation of motion:
@@ -776,22 +777,21 @@ double bks_jackson1483_num(double b, double gamma_e, double theta, double omega)
  * @f]
  *
  * @f[
- *     p_y(t) = - mc  a_0 f(2\omega_0 * t),
+ *     p_y(t) = - mc a_0 f(2 * t),
  * @f]
  *
  * @f[
- *     x(t) = - c \beta_0 t,
+ *     x(t) = - \beta_0 t,
  * @f]
  * 
  * @f[
- *     y(t) = - \frac{a_0}{2\gamma_0} \left( \frac{sin(k_L \omega)^2}{k_L^2}   \\
- *     	- \frac{x_L^2 (cos((k_L - \pi/x_L) 2\omega_0 t))}{4 (\pi - x_L k_L)^2} \\
- * 		- \frac{x_L^2 (cos((k_L + \pi/x_L) 2\omega_0 t))}{4 (\pi + x_L k_L)^2}
+ *     y(t) = - \frac{a_0}{2\gamma_0} \left( - 0.5 * a_0^2 * cos(2 t/a_0)  \\
+ *     	+ \frac{x_L^2 (cos((1/a_0 - \pi/x_L) 2t))}{4 (\pi - x_L/a_0)^2} \\
+ * 		- \frac{x_L^2 (cos((1/a_0 + \pi/x_L) 2t))}{4 (\pi + x_L/a_0)^2}
  * @f]
  * @param ri      index of refraction
  * @param m       particle mass
  * @param b       normalized laser field
- * @param omega_L laser frequency
  * @param gamma_0 particle initial Lorentz factor
  * @param k_L     the laser wave vector
  * @param x_L     the FWHM for the Electric field
@@ -803,47 +803,46 @@ bks_dipole_emission_probability( double ri
                                , double m
                                , double b
 							   , double x_L
-							   , double omega_L
                                , double gamma_0
                                , double theta
                                , double omega
                                ) {
     double delta_ri = ri - 1;
-	double k_L = omega_L;   	 
     // tb is the upper limit of the integration
     double tb = 0;
     // ta is the lower limit of the integration
     double ta = x_L;
-    long long int nt = llround(x_L * k_L * 100);
+	// 100 points per one oscillation with k_L or 1/b
+    long long int nt = llround(x_L * 100 / b);
     // step of the integration
     double dt = (tb - ta) / static_cast<double>(nt - 1);
     auto t_nodes = ranges::v3::iota_view(0, nt)
                  | ranges::v3::views::transform(
-                      [=](long long i){ return  ta + dt * static_cast<double>(i); }
+                      [=](long long i){ return ta + dt * static_cast<double>(i); }
                     ); 
-
+	double beta_0 = 1 - 0.5 / ( gamma_0 * gamma_0 );
 	auto x = std::function<double(double)>(
 		[=](double t) {
-			return t;
+			return - beta_0 * t;
 		}
 	);
-	double etap = 0.0625 * (x_L / (M_PI + x_L * k_L)) * (x_L / (M_PI + x_L * k_L));
-	double etam = 0.0625 * (x_L / (M_PI - x_L * k_L)) * (x_L / (M_PI - x_L * k_L));
+	double etap = 0.25 * (x_L / (M_PI + x_L / b)) * (x_L / (M_PI + x_L / b));
+	double etam = 0.25 * (x_L / (M_PI - x_L / b)) * (x_L / (M_PI - x_L / b));
 	auto y = std::function<double(double)>(
 		[=](double t) {
 			return - 0.5 * (b/gamma_0) * (
-				   (sin(k_L * omega_L * t)/k_L) * (sin(k_L * omega_L * t)/k_L)
-				 - etam * cos( (k_L - M_PI/x_L)*2*omega_L*t)
-				 - etap * cos( (k_L + M_PI/x_L)*2*omega_L*t)
+				   0.5 * b * b * cos(2 t/ b)
+				 - etam * cos((1/b - M_PI/x_L) * 2 * t)
+				 - etap * cos((1/b + M_PI/x_L) * 2 * t)
 				 );
 		}
 	);
 	auto v_y = std::function<double(double)>(
 		[=](double t) {
 			return - 0.5 * (b/gamma_0) * 0.25 * ( 
-					2 * sin(k_L * 2*omega_L*t)/k_L
-				  + x_L * sin( (k_L - M_PI / x_L) * 2*omega_L*t)/(k_L * x_L - M_PI)
-				  + x_L * sin( (k_L + M_PI / x_L) * 2*omega_L*t)/(k_L * x_L + M_PI)
+					2 * b * sin(2 * t / b)
+				  + x_L * sin( (1/b - M_PI / x_L) * 2 * t)/(x_L / b - M_PI)
+				  + x_L * sin( (1/b + M_PI / x_L) * 2 * t)/(k_L / b + M_PI)
 				  );
 		}
 	);
@@ -871,7 +870,6 @@ bks_dipole_td( double ri
              , double m
              , double b
 			 , double x_L
-			 , double omega_L
              , double gamma_p
              ) {
     // The normalization is needed!
@@ -881,7 +879,7 @@ bks_dipole_td( double ri
             double omega = std::get<1>(theta_omega);
             if (omega > 0 and omega * b < m * gamma_p) {
                 return 2 * pow(omega / M_PI, 2) * cos(theta) / m
-                         * bks_dipole_emission_probability(ri, m, b, x_L, omega_L, gamma_p, theta, omega);
+                         * bks_dipole_emission_probability(ri, m, b, x_L, gamma_p, theta, omega);
             } else {
                 return 0.0;
             }
