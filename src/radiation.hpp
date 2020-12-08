@@ -490,42 +490,90 @@ double bks_emission_probability( std::function<double(double)> vp1
 }
 
 /**
- * An approximation of the real part of the vacuum refractive index in strong magnetic field @f$ B
- * @f$. The refractive index for photon wave vector and polarization perpendicular to the magnetic
- * field is
+ * An approximation of the real part of the vacuum refractive index in a strong magnetic field @f$
+ * B @f$ for photons which polarization is @a perpendicular to the magnetic field (photon wave
+ * vector is also assumed perpendicular to the magnetic field). The refractive index is
  * @f[
- *     n = 1 + \frac{\alpha b^2}{4 \pi} N(\chi),
+ *     n_\perp = 1 + \frac{\alpha b^2}{4 \pi} N_\perp(\chi),
  * @f]
- * with @f$ \chi @f$ the photon quantum parameter.
+ * with @f$ \chi @f$ the photon quantum parameter ("kappa").
  *
- * The exact expression for the refractive index can be found in [Thomas Erber, High- Energy
- * Electromagnetic Conversion Processes in Intense Magnetic Fields, Reviews of modern physics, vol.
- * 38, num. 4, oct. 1966]. The asymptotics of the function @f$ N @f$ are
+ * The exact expression for the refractive index can be get from [Narozhny N. B., Zh. Eksp. Teor.
+ * Fiz. 55, 714 (1968)] and from (2.11) of [Ritus V. I., Sov. Phys. JETP 30, 1181 (1970)], see also
+ * [Thomas Erber, High- Energy Electromagnetic Conversion Processes in Intense Magnetic Fields,
+ * Reviews of modern physics, vol.  38, num. 4, oct. 1966] and Fig. 9 in [McDonald K. T. et al.,
+ * Princeton U. preprint DOE ER, 3072-38 (1986)]. The asymptotics of the function @f$ N_\perp @f$
+ * are
  * @f[
- *     N(\chi) = 
+ *     N_\perp(\chi) = 
           \left\{
             \begin{array}{lr}
               14/45, \quad &\chi \ll 1, \\
-              0.278 \chi^{-4/3}, \quad &\chi \gg 1.
+              -1.65 \chi^{-4/3}, \quad &\chi \gg 1.
             \end{array}
           \right.
  * @f]
- * The main features of the original function @f$ N @f$, such as the position of the function zero,
- * peak value and asymptotics, are saved in the approximation with precision of about 10-20%. See
- * the plot of the approximation for @f$ N(\chi) @f$ <a href =
- * "https://www.wolframcloud.com/obj/cbf8dcb5-23d1-42ca-b1c3-0462ceff113c">here</a>.
+ * The approximation used here is based on numerical values of @f$ N @f$ obtained by Egor Sozinov
+ * in the framework of QED (not published yet). The comparison between numerical data (red and blue
+ * for perpendicular and parallel polarizations, respectively) and approximations used here (dark
+ * green and brown) is shown below:
+ * @image html "../figures/N_kappa_interpolation.png"
  * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
  * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
 */
-double vacuum_refractive_index( double b
-                              , double omega
-                              ) {
-    double chi = omega * b * b;
-    double N
-        = 14/45.0 / (1 + 0.25 * chi * chi)                   // -> asymptotics at chi << 1
-        + 0.05 * exp(-chi - 1 / (2 * chi + 0.1)) / exp(-1.5) // -> bump at chi = 0.5
-        - 0.278 * pow(chi + 1, -4/3.0)                       // -> asymptotics at chi >> 1
-                * chi * chi / ( 400 - 25 * chi + chi * chi); // screening for small chi
+double vacuum_refractive_index_perp( double b
+                                   , double omega
+                                   ) {
+    double k = omega * b * b; // kappa, i.e. chi of the photon
+    double c1 = 2.4;
+    double c2 = 150;
+    double c3 = 0.079;
+    double c4 = 0.97;
+    double c5 = 1.1;
+    double c6 = 0.0073;
+    double c7 = 0.024;
+    double c8 = 9.4;
+    double N = 14.0/45 / (1 + pow(k / c1, 2))
+             - 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
+             + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
+             - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
+    return 1.0 + alpha * b * b * N / (4 * M_PI);
+}
+
+/**
+ * An approximation of the real part of the vacuum refractive index in a strong magnetic field @f$
+ * B @f$ for photons which polarization is @a parallel to the magnetic field (photon wave vector is
+ * assumed perpendicular to the magnetic field). The function @f$ N @f$ in this case has the
+ * following asymptotics:
+ * @f[
+ *     N_\parallel(\chi) = 
+          \left\{
+            \begin{array}{lr}
+              8/45, \quad &\chi \ll 1, \\
+              -1.1 \chi^{-4/3}, \quad &\chi \gg 1.
+            \end{array}
+          \right.
+ * @f]
+ * See #vacuum_refractive_index_perp for further details.
+ * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
+ * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
+*/
+double vacuum_refractive_index_parallel( double b
+                                       , double omega
+                                       ) {
+    double k = omega * b * b; // kappa, i.e. chi of the photon
+    double c1 = 2.8;
+    double c2 = 170;
+    double c3 = 0.041;
+    double c4 = 1.5;
+    double c5 = 1.0;
+    double c6 = 0.005;
+    double c7 = 0.026;
+    double c8 = 8.0;
+    double N = 4.0/7 * 14.0/45 / (1 + pow(k / c1, 2))
+             - 2.0/3 * 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
+             + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
+             - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
     return 1.0 + alpha * b * b * N / (4 * M_PI);
 }
 

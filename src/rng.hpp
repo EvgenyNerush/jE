@@ -1,6 +1,6 @@
 /**
  * @file
- * @brief Random number generators in form appropriate for @metropolis and @p cast_to_01 functions
+ * @brief Random number generators in form appropriate for #metropolis and @p cast_to_01 functions
  * for them.
  */
 
