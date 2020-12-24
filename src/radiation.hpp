@@ -25,12 +25,12 @@ using namespace std::literals::complex_literals;
  * @f[
  * t_{rf} = m c / (e B),
  * @f]
- * coordinates are normalized to @f$ c t_{rf} @f$ and energy to @f$ m c^2 @f$. Velocity is
- * normalized to the speed of light @f$ c @f$ and frequency is normalized to @f$ 1 / t_{rf} @f$.
- * Note that the photon of the cyclic frequency @f$ \omega @f$ in the normalized units has energy
- * @f$ \omega \, b @f$ with @f$ b = B / B_S @f$, and @f$ B_S = m^2 c^3 / e \hbar @f$ the
- * Sauter--Schwinger field (the critical field of QED). For the synchrotrom radiation formulas, see
- * @ref synchrotron_radiation.
+ * coordinates are normalized to @f$ c t_{rf} @f$ and energy to the electron rest energy @f$ m c^2
+ * @f$. Velocity is normalized to the speed of light @f$ c @f$ and frequency is normalized to @f$ 1
+ * / t_{rf} @f$.  Note that the photon of the cyclic frequency @f$ \omega @f$ in the normalized
+ * units has energy @f$ \omega \, b @f$ with @f$ b = B / B_S @f$, and @f$ B_S = m^2 c^3 / e \hbar
+ * @f$ the Sauter--Schwinger field (the critical field of QED). For the synchrotrom radiation
+ * formulas, see @ref synchrotron_radiation.
  * @{
  */
 
