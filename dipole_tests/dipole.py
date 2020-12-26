@@ -6,60 +6,73 @@ import matplotlib.colors as colors
 import matplotlib.cm as mcm
 import copy
 import scipy.integrate as integrate
+from matplotlib.colors import LogNorm
 
-subprocess.run(["make", "sinus"])
+subprocess.run(["make", "dipole"])
 
-params = open("sinus_data/parameters.txt").readlines();
+params = open("dipole_data/parameters.txt").readlines();
 b           = float(params[0]) # magnetic field normalized in accoradance with radiation.hpp
-theta_b     = float(params[0]) # theta boundery
-m           =   int(params[2]) # number of dots in theta range
-n           =   int(params[3]) # number of dots in omega range
-gamma       = float(params[4]) # particle energy
-omega_left  = float(params[5])
-omega_right = float(params[6])
+m           =   int(params[1]) # number of dots in theta range
+n           =   int(params[2]) # number of dots in omega range
+gamma       = float(params[3]) # particle energy
+omega_left  = float(params[4])
+omega_right = float(params[5])
+width_L     = float(params[6])
 omega_L     = float(params[7])
-width_L     = float(params[8])
+theta_right = float(params[8])
+theta_left  = float(params[9])
 domega = (omega_right - omega_left) / n
 chi = gamma * b
-lw = 1
-ms = 3
+
+omega = np.arange(omega_left, omega_right, domega)
+# theta = np.arange(theta_right, theta_left, m)
 
 im1 = np.loadtxt("dipole_data/vacuum.txt") # data with ri = 1
 im1 = np.reshape(im1, (n, m))
+im2 = np.loadtxt("dipole_data/ref_ind.txt") # data with ri = 1
+im2 = np.reshape(im1, (n, m))
+ch_angle = np.loadtxt("dipole_data/ch_angle.txt") # cherenkov angle as a function of omega
 
-plt.style.use("plasma.mplstyle")
-cmap = 'Greys'
+cmap = 'hot'
 
 fig = plt.figure(figsize = (6, 4.2), constrained_layout = True)
-gs = fig.add_gridspec(1, 1)
+gs = fig.add_gridspec(2, 2)
 
 #================= ax1, left plots ======================
-ax1 = fig.add_subplot(gs[:, 0])
+ax1 = fig.add_subplot(gs[0, 0])
 vmax = np.max(im1)
-im12 = np.empty((2 * m, n))
-im12[0:m] = im1.transpose()
-im12[m:(2 * m)] = im2.transpose()
-im12 = im12 / vmax
-im_1 = ax1.imshow( im12, origin = 'lower'
+im1 = im1 / vmax
+im_1 = ax1.imshow( im1, origin = 'lower'
                  , cmap = cmap, aspect = 'auto'
-                 , extent = [omega_left * b / gamma, omega_right * b / gamma, -theta_b_mrad,
-                     theta_b_mrad]
+                 , extent = [omega_left/omega_L, omega_right/omega_L, -theta_left, theta_right]
                  , vmin = 0
-                 , vmax = 1
+                 , vmax = 0.1 * np.max(im1)
+                 #, norm = LogNorm(vmin = 0.001, vmax = 0.01)
                  )
 
-ax1.set_xlabel("ℏω/ε")
-ax1.set_xlim([0, 1])
-ax1.set_xticks([0, 0.5, 1])
-ax1.set_xticklabels(["0", "0.5", "1"])
+ax1.set_xlabel("ω/ω_L")
 ax1.set_ylabel("θ (rad)")
-ax1.set_ylim([0, theta_b])
-#cb1 = fig.colorbar( im_1
-#                  , orientation = 'horizontal'
-#                  , aspect = 9
-#                  , ticks = [0, 0.5, 1]
-#                  , format = '%.1g'
-#                  )
-#cb1.set_label("d²I/dωdθ (a.u.)")
+#================= ax2, right plots ====================
+ax2 = fig.add_subplot(gs[0,1])
+ax2.plot(omega, ch_angle) 
+vmax = np.max(im2)
+im2 = im2 / vmax
+im_2 = ax2.imshow( im2, origin = 'lower'
+                 , cmap = cmap, aspect = 'auto'
+                 , extent = [omega_left/omega_L, omega_right/omega_L, -theta_left, theta_right]
+                 , vmin = 0
+                 , vmax = 0.1 * np.max(im2)
+                 )
+ax2.set_xlabel("ω/ω_L")
+#================= ax3, field float ====================
+ax3 = fig.add_subplot(gs[1,0])
+sum_im1 = np.sum(im1, axis = 1)
+sum_im1 = sum_im1 / np.max(sum_im1)
+sum_im2 = np.sum(im2, axis = 1) 
+sum_im2 = sum_im2 / np.max(sum_im2)
+ax3.plot(omega, sum_im1, "r", label="no-ri")
+ax3.plot(omega, sum_im2, "g", label="ri")
+ax3.legend(loc="upper left", fontsize = 15)
 
-plt.savefig('sinus.pdf')
+plt.show()
+# plt.savefig('sinus.pdf')
