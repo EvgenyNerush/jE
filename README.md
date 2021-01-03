@@ -1,4 +1,4 @@
-# jE /dʒeɪ iː/
+# jE /dʒeɪ iː/ ![jay logo](jay-logo.png)
 
 This code implements:
 
