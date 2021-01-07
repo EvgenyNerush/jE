@@ -1,0 +1,9 @@
+/*! \mainpage
+ * 
+ * @a jE allows to compute photon emission probability for a given electron (or
+ * muon) trajectory, with special attention to a number of QED effects. See @a
+ * Modules section above for description. @a jE home is <a href =
+ * "https://github.com/EvgenyNerush/jE">here</a>.
+ *
+ * @image html "jay-logo.png"
+ */

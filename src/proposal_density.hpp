@@ -60,7 +60,7 @@ dx</tt> should be considered element-wise, and advance of @p rng_state* is doing
 of the tuple @p x.
 * @param rng a random number generator which takes and advances its state
 * @param a   an amplitute to be used by method @p m
-* @param m   a methot to produce @p dx from @p rng_state and @p a. To get @dx evenly distributed in
+* @param m   a methot to produce @p dx from @p rng_state and @p a. To get @p dx evenly distributed in
 *            (-a, a) use appropriate <tt>*_cast_with_amplitude</tt> function from rng.hpp (i.e.
 *            pm_cast_with_amplitude() if pm_rng() is used). Note also that the proposal
 *            distribution should be symmetric in the metropolis algorithm that constrains the

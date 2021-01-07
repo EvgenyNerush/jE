@@ -25,12 +25,14 @@ using namespace std::literals::complex_literals;
  * @f[
  * t_{rf} = m c / (e B),
  * @f]
- * coordinates are normalized to @f$ c t_{rf} @f$ and energy to the electron rest energy @f$ m c^2
- * @f$. Velocity is normalized to the speed of light @f$ c @f$ and frequency is normalized to @f$ 1
- * / t_{rf} @f$.  Note that the photon of the cyclic frequency @f$ \omega @f$ in the normalized
- * units has energy @f$ \omega \, b @f$ with @f$ b = B / B_S @f$, and @f$ B_S = m^2 c^3 / e \hbar
- * @f$ the Sauter--Schwinger field (the critical field of QED). For the synchrotrom radiation
- * formulas, see @ref synchrotron_radiation.
+ * coordinates are normalized to @f$ c t_{rf} @f$ and energy to the electron
+ * rest energy @f$ m c^2 @f$, i.e. @f$ m @f$ the electron mass. Velocity is
+ * normalized to the speed of light @f$ c @f$ and frequency is normalized to
+ * @f$ 1 / t_{rf} @f$.  Note that the photon of the cyclic frequency @f$ \omega
+ * @f$ in the normalized units has energy @f$ \omega \, b @f$ with @f$ b = B /
+ * B_S @f$, and @f$ B_S = m^2 c^3 / e \hbar @f$ the Sauter--Schwinger field
+ * (the critical field of QED). For the synchrotrom radiation formulas, see
+ * @ref synchrotron_radiation.
  * @{
  */
 
@@ -174,7 +176,7 @@ std::complex<double> c_m( std::function<double(double)> vp
     return sqrt(alpha * M_PI / (4 * omega)) * trap_rule(f, t_nodes);
 }
 
-/*
+/**
  * @}
  */
 
@@ -352,7 +354,8 @@ double jackson1483_num(double b, double gamma_e, double theta, double omega) {
 
 /**
  * @defgroup bks_radiation Quasiclassical radiation module
- * @brief General formulas from BKS theory with vacuum polarization taken into account
+ * @brief General formulas from BKS theory with vacuum polarization taken into
+ * account. The same normalization as in @ref radiation is used here
  * @{
  */
 
@@ -517,7 +520,7 @@ double bks_emission_probability( std::function<double(double)> vp1
  * in the framework of QED (not published yet). The comparison between numerical data (red and blue
  * for perpendicular and parallel polarizations, respectively) and approximations used here (dark
  * green and brown) is shown below:
- * @image html "../figures/N_kappa_interpolation.png"
+ * @image html "N_kappa_interpolation.png"
  * @param b        the normalized magnetic field strength, @f$ B / B_{cr} @f$
  * @param omega    the normalized photon cyclic frequency, @f$ \omega t_{rf} @f$
 */

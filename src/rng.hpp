@@ -25,7 +25,7 @@ double pm_cast_to_01(uint64_t r) {
 
 /**
  * Function to compute values evenly distributed in <tt>(-a, a)</tt>, from values returned by
- * @pm_rng.
+ * @p pm_rng.
  */
 double pm_cast_with_amplitude(uint64_t r, double a) {
     return a * (2 * pm_cast_to_01(r) - 1);

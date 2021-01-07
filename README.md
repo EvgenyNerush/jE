@@ -1,4 +1,4 @@
-# jE /dʒeɪ iː/ ![jay logo](jay-logo.png)
+# jE /dʒeɪ iː/ ![jay logo](doc/figures/jay-logo.png)
 
 This code implements:
 
@@ -26,7 +26,7 @@ Html documentation can be produced with Doxygen:
     cd doc
     doxygen doxygen.conf
 
-and then can be found in doc/html/index.html
+and then can be found in doc/html/index.html. See online version [here](https://evgenynerush.github.io/jE-doc/).
 
 ## Licence
 
