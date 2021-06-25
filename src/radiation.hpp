@@ -542,8 +542,8 @@ std::complex<double> vacuum_refractive_index_perp( double b
                 - 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
                 + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
                 - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
-    double d1 = 1;
-    double d2 = 1.44;
+    double d1 = 1.3;
+    double d2 = 1.47;
     double Im_N = 4 * M_PI * d1 * pow(3.0/8, 3.0/2) * exp( - 8.0 / ( 3 * k ) )
                 / ( k * ( 1 + (d1 * pow(3.0/8, 3.0/2) * exp(0.0)) / 0.38 * d2 * pow(k, 1.0/3) ) );
     return 1.0 + alpha * b * b * (Re_N + 1i * Im_N) / (4 * M_PI);
@@ -583,8 +583,8 @@ std::complex<double> vacuum_refractive_index_parallel( double b
                 - 2.0/3 * 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
                 + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
                 - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
-    double d1 = 1;
-    double d2 = 3.6;
+    double d1 = 0.5;
+    double d2 = 1.85;
     double Im_N = 4 * M_PI * d1 * pow(3.0/8, 3.0/2) * exp( - 8.0 / ( 3 * k ) )
                 / ( k * ( 1 + (d1 * pow(3.0/8, 3.0/2) * exp(0.0)) / 0.38 * d2 * pow(k, 1.0/3) ) );
     return 1.0 + alpha * b * b * (Re_N + 1i * Im_N) / (4 * M_PI);
@@ -765,13 +765,14 @@ bks_synchrotron_td( double ri
                   , double b
                   , double gamma_p
                   ) {
-    // The normalization can be obtained analogous to jackson1483_num, see comments there. Note
-    // that the generated photons are evenly distributed around the electron trajectory (which is a
-    // circle), i.e. they are evenly distributed in the angle $ \phi $ which in turn corresponds to
-    // the direction of the photon wavevector in the plane of the electron trajectory. Thus, the
-    // solid angle is $ d\Omega = \cos \theta \, d\phi d\theta $, and for the emission probability
-    // we get $ d^2 W / d\theta d\omega = 2 W_m \cos \theta \omega^2 / \pi^2 $ with $ W_m $ the
-    // emission probability computed with bks_synchrotron_emission_probability function.
+    // The normalization can be obtained analogous to jackson1483_num, see comments there on the
+    // mode density etc. Note that the generated photons are evenly distributed around the electron
+    // trajectory (which is a circle), i.e. they are evenly distributed in the angle $ \phi $ which
+    // in turn corresponds to the direction of the photon wavevector in the plane of the electron
+    // trajectory. Thus, the solid angle is $ d\Omega = \cos \theta \, d\phi d\theta $, and for the
+    // emission probability we get $ d^2 W / d\theta d\omega = 2 W_m \cos \theta \omega^2 / \pi^2 $
+    // with $ W_m $ the emission probability computed with bks_synchrotron_emission_probability
+    // function.
     return std::function< double( std::tuple<double, double> ) >(
         [=]( std::tuple<double, double> theta_omega ) {
             double theta = std::get<0>(theta_omega);
@@ -816,56 +817,175 @@ double bks_jackson1483_num(double b, double gamma_e, double theta, double omega)
  */
 
  /**
-  * Kernel of the synchrotron radiation losses in a medium with a given @a complex refractive
-  * index. If the imaginary part of the refractive index is zero, this kernel is the spectal
-  * distribution of the emitted power, multiplied by (-1). If the imaginary part of the refractive
-  * index is non-zero, the emitted photons decay (also during the radiation process) and there is
-  * no obvious physical sense of the spectrum. Anyway, the power of the losses can be given as an
-  * integral over real "wave vector" k (from 0 to infinity in the classical case):
+  * (Positive) kernel of the @a synchrotron power of the radiation losses in a medium with a given @a complex
+  * refractive index, in the framework of classical electrodynamics. If the imaginary part of the
+  * refractive index is zero, this kernel is the spectal distribution of the emitted power,
+  * multiplied by (-1). If the imaginary part of the refractive index is non-zero, the emitted
+  * photons decay (also during the radiation process) and there is no obvious physical sense of the
+  * spectrum. Anyway, the power of the losses can be given as an integral over real "wave vector" k
+  * (from 0 to infinity in the classical case):
   * @f[
   *     \frac{dP}{dk} = -\frac{\alpha}{\pi} b k \int_0^\infty
   *     \frac{ {\mathbf v}(\tau/2) {\mathbf v}(-\tau/2) }
   *          { |{\mathbf r}(\tau/2) - {\mathbf r}(-\tau/2)| }
   *     \exp(-\psi \nu \tau) \\
-  *     \times \left \{ \eta \sin [\psi \eta \tau - k | r(\tau/2) - r(-\tau/2)|]
-  *                   + \nu  \cos [\psi \eta \tau - k | r(\tau/2) - r(=\tau/2)|]
-  *            \right\} \, d\tau
+  *     \times \left \{ \eta \sin [\psi \eta \tau - k | {\mathbf r}(\tau/2) - {\mathbf r}(-\tau/2)|]
+  *                   + \nu  \cos [\psi \eta \tau - k | {\mathbf r}(\tau/2) - {\mathbf r}(-\tau/2)|]
+  *            \right\} \, d\tau,
   * @f]
-  * with mu
-  * * @param ri      the medium refractive index, 1 for vacuum
-  * @param m       the rest mass of the emitting particle (in electron masses), thus set to 1 for
-  *                an electron
+  * with @f$ \eta @f$ and @f$ \nu @f$ the real and imaginary parts of the refractive index @f$ n =
+  * \eta + i \nu @f$, @f$ \psi = k / |n|^2 @f$, and we assume the pre-exponent multiplier @f$ \mu / \eta
+  * \approx 1 @f$ (where @f$ \mu @f$ the magnetic permeability).
+  *
+  * Note that the formula above is not general and valid only for the circular motion of a
+  * particle. For an ultrarelativistic particle the formula for the kernel can be further
+  * simplified:
+  * @f[
+  * @f]
+  * @param ri      complex refractive index
+  * @param m       the rest mass of the emitting particle (in electron masses)
   * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
   * @param gamma_p the Lorentz factor of the emitting particle
-  * @param theta   angle in the plane perpendicular to the normal vector of the trajectory; @p
-  *                theta = 0 is the direction of the tangent to the trajectory
-  * @param omega   @f$ 0 < \omega < \gamma_p / b @f$, frequency of the emitted photon normalized to
-  *                the reverse radiation formation time
+  * @param k       @f$ k > 0 @f$, the wavevector amplitude used in the kernel, normalized to the
+  *                reverse radiation formation length @f$ 1 / c t_{rf} @f$
  */
-double qwe_bks_synchrotron_emission_probability( double ri
-                                           , double m
-                                           , double b
-                                           , double gamma_p
-                                           , double theta
-                                           , double omega
-                                           ) {
-    double epsilon   = m * gamma_p / b; // m c^2 \gamma_p / (\hbar / t_rf)
+double classical_synchrotron_power_kernel_deprecated( std::complex<double> ri
+                                                    , double m
+                                                    , double b
+                                                    , double gamma_p
+                                                    , double k
+                                                    ) {
+    /*double epsilon   = m * gamma_p / b; // m c^2 \gamma_p / (\hbar / t_rf)
     double epsilon_s = epsilon - omega;
     double omega_s   = omega * epsilon / epsilon_s;
+    */
+    double eta = real(ri);
+    double nu  = imag(ri);
 
-    // the exponential in the integrals is approximately equal to exp(i phi(t)), with phi = 2 *
-    // M_PI * (t * signed_reverse_tau_parallel + pow(t / tau_perp, 3));
-    double delta_ri = ri - 1;
+    // the phase in the sine and cosine functions is phi = 2 * M_PI
+    // * (tau * signed_reverse_tau_parallel + pow(tau / tau_perp, 3));
     // +-1 / tau_parallel, to avoid the point tau_parallel = \infty
     double signed_reverse_tau_parallel
-        = omega_s / (4 * M_PI) * ( theta * theta + 1 / (gamma_p * gamma_p) - 2 * delta_ri);
+        = k / (2 * M_PI) * (eta / norm(ri) - 1 + 1 / (2 * gamma_p * gamma_p));
     double reverse_tau_parallel = fabs(signed_reverse_tau_parallel);
     double varsigma = (signed_reverse_tau_parallel >= 0) ? (+1) : (-1);
-    double tau_perp = gamma_p * pow(12 * M_PI * m * m / (omega_s * r(gamma_p)), 1/3.0);
+    double tau_perp = gamma_p * pow(48 * M_PI * m * m / (k * r(gamma_p)), 1/3.0);
+    double reverse_tau_d = 1 / (k * nu);
 
-    // we integrate approximately on the interval of +-l scales of the descent of the integrals
+    // we integrate approximately on the interval from 0 to l scales of the descent of the
+    // integrals, and on +-l scales around the saddle point if the Cherenkov condition is
+    // exceeded
     double l = 3;
     double period_fraction = 1/2.0; // fraction of the minimal period which determines the timestep
+
+    // a point where linear and cubic terms in the phase yield the same oscillation period; if
+    // varsigma = -1, then d\phi / dt = 0 at t = +-t_s (saddle points)
+    double ts = sqrt(pow(tau_perp, 3) * reverse_tau_parallel / 3);
+    // tw is a width of a leading bump (one of two) in the case varsigma = -1 and tau_perp >>
+    // tau_parallel, i.e. tw = T(t_s) in this case
+    double tw = sqrt(pow(tau_perp, 3) / ts);
+    // common multiplier
+    double a = alpha * b * k / M_PI;
+
+    if ( varsigma < 0 and l * tw < ts ) {
+        // parabolic approximation of phi(t) at t_s works, and the integration should be performed
+        // around t_s
+        // tb is the upper limit of the integration
+        double tb = ts + l * tw;
+        // ta is the lower limit of the integration, ta > 0
+        double ta = ts - l * tw;
+        // the estimate of the period of the exponent oscillations
+        // (T = 2 \pi / (d\phi/dt)) at t = tb
+        double osc_period = 1 / (-reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
+        // number of points for the exponent integration
+        long long int nt = llround((tb - ta) / (osc_period * period_fraction));
+        // step of the integration
+        double dt = (tb - ta) / static_cast<double>(nt - 1);
+        auto t_nodes  = ranges::v3::iota_view(0, nt)
+                      | ranges::v3::views::transform(
+                          [=](long long i){ return  ta + dt * static_cast<double>(i); }
+                        );
+
+        auto phi = std::function<double(double)>(
+            [=](double t) {
+                return 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+            }
+        );
+
+        auto f = std::function<double(double)>(
+            [=](double t) {
+                return exp(-t * reverse_tau_d) * sin(phi(t)) / t;
+            }
+        );
+
+        return a * trap_rule(f, t_nodes);
+    } else {
+        // parabolic approximation of phi(t) at t_s doesn't work, and we should start to integrate
+        // from 0
+        // tb is the upper limit of the integration
+        double tb = l * std::max(tau_perp, ts);
+        // the estimate of the period of the exponent oscillations
+        // (T = 2 \pi / (d\phi/dt)) at t = tb
+        double osc_period = 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
+        // lower limit of the integration
+        double ta = osc_period * period_fraction * 1e-2; // to avoid sin(0) / 0
+        // number of points for the exponent integration
+        long long int nt = llround((tb - ta) / (osc_period * period_fraction));
+        // step of the integration
+        double dt = (tb - ta) / static_cast<double>(nt - 1);
+        auto t_nodes = ranges::v3::iota_view(0, nt)
+                     | ranges::v3::views::transform(
+                           [=](long long i){ return ta + dt * static_cast<double>(i); }
+                       );
+
+        auto f = std::function<double(double)>(
+            [=](double t) {
+                double phi =  2 * M_PI
+                           * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+                //double vv = 1 / pow(gamma_p, 2) + 0.5 * pow(t / (m * gamma_p), 2);
+                //return vv * exp(-t * reverse_tau_d) * sin(phi) / t;
+                double vv = t * t;
+                return vv * exp(-t * reverse_tau_d) * sin(phi) / t;
+            }
+        );
+
+        return a * trap_rule(f, t_nodes);
+    }
+}
+
+ /**
+  * Kernel..., should be integrated over theta and k. Note that here the angle theta is not the
+  * same in bks...
+  * @param ri      the medium refractive index (complex)
+  * @param m       the rest mass of the emitting particle (in electron masses)
+  * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
+  * @param gamma_p the Lorentz factor of the emitting particle
+  * @param theta   angle between the tangent to the trajectory and the "wavevector" k. theta = 0 is
+  *                the direction of the tangent to the trajectory. The kernel here is already
+  *                integrated over the azimuthal angle
+  * @param k       @f$ k > 0 @f$, the wavevector amplitude used in the kernel, normalized to the
+  *                reverse radiation formation length @f$ 1 / c t_{rf} @f$
+ */
+double classical_synchrotron_power_kernel( std::complex<double> ri
+                                         , double m
+                                         , double b
+                                         , double gamma_p
+                                         , double theta
+                                         , double k
+                                         ) {
+    double eta = real(ri);
+    double nu  = imag(ri);
+
+    double signed_reverse_tau_parallel
+        = k / (2 * M_PI) * ( theta * theta / 2 + eta / norm(ri) - 1 + 1 / (2 * gamma_p * gamma_p));
+    double reverse_tau_parallel = fabs(signed_reverse_tau_parallel);
+    double varsigma = (signed_reverse_tau_parallel >= 0) ? (+1) : (-1);
+    double tau_perp = gamma_p * pow(48 * M_PI * m * m / (k * r(gamma_p)), 1/3.0);
+    double reverse_tau_d = k * nu;
+
+    // we integrate approximately on the interval of +-l scales of the descent of the integrals
+    double l = 7;
+    double period_fraction = 1/7.0; // fraction of the minimal period which determines the timestep
 
     // a point where linear and cubic terms in the phase yield the same oscillation period; if
     // varsigma = -1, then d\phi / dt = 0 at t = +-t_s
@@ -888,66 +1008,40 @@ double qwe_bks_synchrotron_emission_probability( double ri
         long long int nt = llround((tb - ta) / (osc_period * period_fraction));
         // step of the integration
         double dt = (tb - ta) / static_cast<double>(nt - 1);
+
         auto t_nodes  = ranges::v3::iota_view(0, nt)
                       | ranges::v3::views::transform(
                           [=](long long i){ return  ta + dt * static_cast<double>(i); }
                         );
-        auto t_nodes_ = ranges::v3::iota_view(0, nt)
-                      | ranges::v3::views::transform(
-                          [=](long long i){ return -tb + dt * static_cast<double>(i); }
-                        );
 
-        auto nr = std::function<double(double)>(
+        auto f = std::function<double(double)>(
             [=](double t) {
-                return ri * m * r(gamma_p) * sin(t / (m * gamma_p)) * cos(theta);
-            }
-        );
-
-        auto vp1 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
-            }
-        );
-        auto vp1_ = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
+                double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+                return alpha * b / (2 * M_PI) * k * k * theta
+                     * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
+                     * exp(-t * reverse_tau_d)
+                     * ( eta * cos(phi) - nu * sin(phi) )
+                     * 0.5 * (1 - tanh(8 * (t / tb - 0.7))); // qwe QWE QWE !!! wrong in this case
+                     // note that artificial attenuation is added here; the idea behind is that
+                     // with this attenuation neighboring bumps quench each other earlier hence
+                     // smaller integration interval can be used
             }
         );
 
-        auto vp2 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
-            }
-        );
-        auto vp2_ = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
-            }
-        );
-        return bks_emission_probability(vp1 , vp2 , nr, t_nodes , m, b, gamma_p, omega)
-             + bks_emission_probability(vp1_, vp2_, nr, t_nodes_, m, b, gamma_p, omega);
+        return trap_rule(f, t_nodes);
+
     } else {
         // parabolic approximation of phi(t) at t_s doesn't work, and we should integrate over
         // single interval;
         // tb is the upper limit of the integration
-        double tb = l * std::max(tau_perp, ts);
+        double tb = l * ( reverse_tau_d == 0 ? // qwe we assume that nu > 0 !!!
+            std::max(tau_perp, ts) :
+            std::min( 1 / reverse_tau_d, std::max(tau_perp, ts) ) );
         // the estimate of the period of the exponent oscillations
         // (T = 2 \pi / (d\phi/dt)) at t = tb
         double osc_period = 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
         // lower limit of the integration
-        double ta = -tb;
+        double ta = osc_period * period_fraction * 1e-2; // to avoid sin(0) / 0
         // number of points for the exponent integration
         long long int nt = llround((tb - ta) / (osc_period * period_fraction));
         // step of the integration
@@ -957,28 +1051,21 @@ double qwe_bks_synchrotron_emission_probability( double ri
                            [=](long long i){ return ta + dt * static_cast<double>(i); }
                        );
 
-        auto nr = std::function<double(double)>(
+        auto f = std::function<double(double)>(
             [=](double t) {
-                return ri * m * r(gamma_p) * sin(t / (m * gamma_p)) * cos(theta);
+                double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+                return alpha * b / (2 * M_PI) * k * k * theta
+                     * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
+                     * exp(-t * reverse_tau_d)
+                     * ( eta * cos(phi) - nu * sin(phi) )
+                     * 0.5 * (1 - tanh(9 * (t / tb - 0.6)));
+                     // note that artificial attenuation is added here; the idea behind is that
+                     // with this attenuation neighboring bumps quench each other earlier hence
+                     // smaller integration interval can be used
             }
         );
-        auto vp1 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
-            }
-        );
-        auto vp2 = std::function<double(double)>(
-            [=](double t) {
-                return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
-                     * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
-                     *        (1 + tanh(8 * (t / tb + 0.7)));
-                     // attenuation; see comments in #synchrotron_emission_probability
-            }
-        );
-        return bks_emission_probability(vp1, vp2, nr, t_nodes, m, b, gamma_p, omega);
+
+        return trap_rule(f, t_nodes);
     }
 }
 
