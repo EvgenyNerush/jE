@@ -627,7 +627,8 @@ double bks_synchrotron_emission_probability( double ri
 
     // we integrate approximately on the interval of +-l scales of the descent of the integrals
     double l = 3;
-    double period_fraction = 1/2.0; // fraction of the minimal period which determines the timestep
+    // fraction of the minimal period which determines the timestep; irrational to avoid resonances
+    double period_fraction = 1 / (exp(1) - 0.5);
 
     // a point where linear and cubic terms in the phase yield the same oscillation period; if
     // varsigma = -1, then d\phi / dt = 0 at t = +-t_s
@@ -668,16 +669,24 @@ double bks_synchrotron_emission_probability( double ri
         auto vp1 = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
+                     * 0.25 * (1 - tanh(8 * ((t - ts) / (l * tw) - 0.7)))
+                     *        (1 + tanh(8 * ((t - ts) / (l * tw) + 0.7)));
+                /* qwe
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
+                     */
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
         auto vp1_ = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_p) / gamma_p * sin(t / (m * gamma_p))
+                     * 0.25 * (1 - tanh(8 * ((t + ts) / (l * tw) - 0.7)))
+                     *        (1 + tanh(8 * ((t + ts) / (l * tw) + 0.7)));
+                /* qwe
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
+                     */
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
@@ -685,16 +694,24 @@ double bks_synchrotron_emission_probability( double ri
         auto vp2 = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
+                     * 0.25 * (1 - tanh(8 * ((t - ts) / (l * tw) - 0.7)))
+                     *        (1 + tanh(8 * ((t - ts) / (l * tw) + 0.7)));
+                /* qwe
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
+                     */
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
         auto vp2_ = std::function<double(double)>(
             [=](double t) {
                 return r(gamma_p) / gamma_p * sin(theta) * cos(t / (m * gamma_p))
+                     * 0.25 * (1 - tanh(8 * ((t + ts) / (l * tw) - 0.7)))
+                     *        (1 + tanh(8 * ((t + ts) / (l * tw) + 0.7)));
+                /* qwe
                      * 0.25 * (1 - tanh(8 * (t / tb - 0.7)))
                      *        (1 + tanh(8 * (t / tb + 0.7)));
+                     */
                      // attenuation; see comments in #synchrotron_emission_probability
             }
         );
@@ -983,20 +1000,26 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
     double tau_perp = gamma_p * pow(48 * M_PI * m * m / (k * r(gamma_p)), 1/3.0);
     double reverse_tau_d = k * nu;
 
-    // we integrate approximately on the interval of +-l scales of the descent of the integrals
-    double l = 7;
-    double period_fraction = 1/7.0; // fraction of the minimal period which determines the timestep
+    // we integrate approximately on +-l scales around the saddle point if the Cherenkov condition
+    // is exceeded
+    double l = 2;
+    double period_fraction = 1/2.0; // fraction of the minimal period which determines the
+                                    // timestep, in the Cherenkov case
 
     // a point where linear and cubic terms in the phase yield the same oscillation period; if
-    // varsigma = -1, then d\phi / dt = 0 at t = +-t_s
+    // varsigma = -1, then d\phi / dt = 0 at t = t_s
     double ts = sqrt(pow(tau_perp, 3) * reverse_tau_parallel / 3);
-    // tw is a width of a leading bump (one of two) in the case varsigma = -1 and tau_perp >>
+    // tw is a width of a leading bump in the case varsigma = -1 and tau_perp >>
     // tau_parallel, i.e. tw = T(t_s) in this case
     double tw = sqrt(pow(tau_perp, 3) / ts);
 
-    if ( varsigma < 0 and l * tw < ts ) {
+    // if true, the contribution from the bump ts +- l * tw is greater than the contribution from
+    // [0, td].
+    bool bump = reverse_tau_parallel * tw * exp(-ts * reverse_tau_d) > 1;
+
+    if ( varsigma < 0 and l * tw < ts and bump) {
         // parabolic approximation of phi(t) at t_s works, and the integration should be performed
-        // over two intervals (one around +t_s and the other around -t_s);
+        // over the interval around t_s;
         // tb is the upper limit of the integration
         double tb = ts + l * tw;
         // ta is the lower limit of the integration
@@ -1021,7 +1044,9 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) )
-                     * 0.5 * (1 - tanh(8 * (t / tb - 0.7))); // qwe QWE QWE !!! wrong in this case
+                     * 0.25 * (1 - tanh(8 * ((t - ts) / (l * tw) - 0.7)))
+                     *        (1 + tanh(8 * ((t - ts) / (l * tw) + 0.7)));
+//                     * 0.5 * (1 - tanh(8 * (t / tb - 0.7))); // qwe QWE QWE !!! wrong in this case
                      // note that artificial attenuation is added here; the idea behind is that
                      // with this attenuation neighboring bumps quench each other earlier hence
                      // smaller integration interval can be used
@@ -1030,20 +1055,29 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
 
         return trap_rule(f, t_nodes);
 
-    } else {
-        // parabolic approximation of phi(t) at t_s doesn't work, and we should integrate over
-        // single interval;
+    } else if (reverse_tau_d * std::max(tau_perp, ts) < 1 ) {
+        // parabolic approximation of phi(t) at t_s doesn't work; photon decay is not crucial
+
+        // we integrate in this (more "synchrotron") case of the interval from 0 to l_s scales of
+        // the descent of the integrals
+        double l_s = 11;
+        double period_fraction_s = 1 / exp(1); // fraction of the minimal period which
+                                               // determines the timestep; irrational to
+                                               // avoid resonances
+
         // tb is the upper limit of the integration
-        double tb = l * ( reverse_tau_d == 0 ? // qwe we assume that nu > 0 !!!
-            std::max(tau_perp, ts) :
-            std::min( 1 / reverse_tau_d, std::max(tau_perp, ts) ) );
+        double tb = l_s * ( reverse_tau_d == 0 ? // qwe we assume that nu > 0 !!!
+                            std::max(tau_perp, ts) :
+                            std::min( 1 / reverse_tau_d, std::max(tau_perp, ts) ) );
+
+
         // the estimate of the period of the exponent oscillations
         // (T = 2 \pi / (d\phi/dt)) at t = tb
         double osc_period = 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
         // lower limit of the integration
-        double ta = osc_period * period_fraction * 1e-2; // to avoid sin(0) / 0
+        double ta = osc_period * period_fraction_s * 1e-4; // to avoid sin(0) / 0
         // number of points for the exponent integration
-        long long int nt = llround((tb - ta) / (osc_period * period_fraction));
+        long long int nt = llround((tb - ta) / (osc_period * period_fraction_s));
         // step of the integration
         double dt = (tb - ta) / static_cast<double>(nt - 1);
         auto t_nodes = ranges::v3::iota_view(0, nt)
@@ -1058,10 +1092,50 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) )
-                     * 0.5 * (1 - tanh(9 * (t / tb - 0.6)));
+                     // * 0.5 * (1 - tanh(9 * (t / tb - 0.6))); // qwe
+                     * 0.5 * (1 - tanh(9 * (t / tb - 0.55)));
                      // note that artificial attenuation is added here; the idea behind is that
                      // with this attenuation neighboring bumps quench each other earlier hence
                      // smaller integration interval can be used
+            }
+        );
+
+        return trap_rule(f, t_nodes);
+    } else {
+        //  photon decay is crucial; parabolic approximation of phi(t) at t_s doesn't work;
+
+        // we integrate in this (more "synchrotron") case of the interval from 0 to l_s scales of
+        // the descent of the integrals
+        double l_s = 14;
+        double period_fraction_s = 1 / exp(1); // fraction of the minimal period which
+                                               // determines the timestep; irrational to
+                                               // avoid resonances
+
+        // tb is the upper limit of the integration
+        double tb = l_s / reverse_tau_d;
+
+        // the estimate of the period of the exponent oscillations
+        // (T = 2 \pi / (d\phi/dt)) at t = tb
+        double osc_period = std::min( 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp)
+                                    , 1 / reverse_tau_d );
+        // lower limit of the integration
+        double ta = osc_period * period_fraction_s * 1e-4; // to avoid sin(0) / 0
+        // number of points for the exponent integration
+        long long int nt = llround((tb - ta) / (osc_period * period_fraction_s));
+        // step of the integration
+        double dt = (tb - ta) / static_cast<double>(nt - 1);
+        auto t_nodes = ranges::v3::iota_view(0, nt)
+                     | ranges::v3::views::transform(
+                           [=](long long i){ return ta + dt * static_cast<double>(i); }
+                       );
+
+        auto f = std::function<double(double)>(
+            [=](double t) {
+                double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+                return alpha * b / (2 * M_PI) * k * k * theta
+                     * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
+                     * exp(-t * reverse_tau_d)
+                     * ( eta * cos(phi) - nu * sin(phi) );
             }
         );
 
