@@ -12,6 +12,8 @@
 #include <range/v3/view/reverse.hpp>
 #include <range/v3/view/transform.hpp>
 
+#include <iostream> // qwe
+
 using namespace std::literals::complex_literals;
 
 /**
@@ -1066,10 +1068,11 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
                                                // avoid resonances
 
         // tb is the upper limit of the integration
-        double tb = l_s * ( reverse_tau_d == 0 ? // qwe we assume that nu > 0 !!!
+        /*double tb = l_s * ( reverse_tau_d == 0 ? // qwe we assume that nu > 0 !!!
                             std::max(tau_perp, ts) :
                             std::min( 1 / reverse_tau_d, std::max(tau_perp, ts) ) );
-
+                            */
+        double tb = l_s * std::max(tau_perp, ts);
 
         // the estimate of the period of the exponent oscillations
         // (T = 2 \pi / (d\phi/dt)) at t = tb
@@ -1084,6 +1087,12 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
                      | ranges::v3::views::transform(
                            [=](long long i){ return ta + dt * static_cast<double>(i); }
                        );
+
+    // qwe
+    /*
+    if(reverse_tau_d != 0)
+    std::cout << k * b * b << '\t' << theta/1e-3 << '\t' << 1/reverse_tau_d << '\t' << sqrt(pow(tau_perp, 3) * reverse_tau_parallel) << '\t' << tb << '\t' << osc_period << std::endl;
+    */
 
         auto f = std::function<double(double)>(
             [=](double t) {
