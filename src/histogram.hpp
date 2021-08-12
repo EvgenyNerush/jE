@@ -32,6 +32,7 @@ std::vector<double> histogram_1D(size_t n, const std::vector<double>& xs){
     std::vector<double> bs; // boundaries of the bins
 
     if (xs.size() > 1) { // for a single point the bin width cann't be found
+
         std::vector<double> ys(xs.size()  - xs.size() %  n);
         std::copy(xs.cbegin(), xs.cend() - xs.size() %  n, ys.begin());
 

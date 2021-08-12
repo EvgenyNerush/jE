@@ -973,15 +973,18 @@ double classical_synchrotron_power_kernel_deprecated( std::complex<double> ri
 }
 
  /**
+  * WARNING: похоже, здесь была потеряна двойка, множетель 2 введён в формулу по сравнению с
+  * предыдущей версией;
   * Kernel..., should be integrated over theta and k. Note that here the angle theta is not the
   * same in bks...
+  * WARNING: we do not compute for high nt, nt > some -> int = 0
   * @param ri      the medium refractive index (complex)
   * @param m       the rest mass of the emitting particle (in electron masses)
   * @param b       the magnetic field strength normalized to the Sauter-Schwinger field
   * @param gamma_p the Lorentz factor of the emitting particle
-  * @param theta   angle between the tangent to the trajectory and the "wavevector" k. theta = 0 is
-  *                the direction of the tangent to the trajectory. The kernel here is already
-  *                integrated over the azimuthal angle
+  * @param theta   @f$ theta > 0 @f$, the angle between the tangent to the trajectory and the
+  *                "wavevector" k. theta = 0 is the direction of the tangent to the trajectory. The
+  *                kernel here is already integrated over the azimuthal angle
   * @param k       @f$ k > 0 @f$, the wavevector amplitude used in the kernel, normalized to the
   *                reverse radiation formation length @f$ 1 / c t_{rf} @f$
  */
@@ -1007,6 +1010,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
     double l = 2;
     double period_fraction = 1/2.0; // fraction of the minimal period which determines the
                                     // timestep, in the Cherenkov case
+    long long int nt_max = 40'000;
 
     // a point where linear and cubic terms in the phase yield the same oscillation period; if
     // varsigma = -1, then d\phi / dt = 0 at t = t_s
@@ -1042,7 +1046,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
         auto f = std::function<double(double)>(
             [=](double t) {
                 double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
-                return alpha * b / (2 * M_PI) * k * k * theta
+                return alpha * b / M_PI * k * k * theta
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) )
@@ -1055,7 +1059,11 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
             }
         );
 
-        return trap_rule(f, t_nodes);
+        if (nt < nt_max) {
+            return trap_rule(f, t_nodes);
+        } else {
+            return 0;
+        }
 
     } else if (reverse_tau_d * std::max(tau_perp, ts) < 1 ) {
         // parabolic approximation of phi(t) at t_s doesn't work; photon decay is not crucial
@@ -1097,7 +1105,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
         auto f = std::function<double(double)>(
             [=](double t) {
                 double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
-                return alpha * b / (2 * M_PI) * k * k * theta
+                return alpha * b / M_PI * k * k * theta
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) )
@@ -1109,7 +1117,12 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
             }
         );
 
-        return trap_rule(f, t_nodes);
+        if (nt < nt_max) {
+            return trap_rule(f, t_nodes);
+        } else {
+            return 0;
+        }
+
     } else {
         //  photon decay is crucial; parabolic approximation of phi(t) at t_s doesn't work;
 
@@ -1141,14 +1154,19 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
         auto f = std::function<double(double)>(
             [=](double t) {
                 double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
-                return alpha * b / (2 * M_PI) * k * k * theta
+                return alpha * b / M_PI * k * k * theta
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) );
             }
         );
 
-        return trap_rule(f, t_nodes);
+        if (nt < nt_max) {
+            return trap_rule(f, t_nodes);
+        } else {
+            return 0;
+        }
+
     }
 }
 
