@@ -977,6 +977,7 @@ double classical_synchrotron_power_kernel_deprecated( std::complex<double> ri
   * предыдущей версией;
   * Kernel..., should be integrated over theta and k. Note that here the angle theta is not the
   * same in bks...
+  * The magic consts are such that classical_syn... test
   * WARNING: we do not compute for high nt, nt > some -> int = 0
   * @param ri      the medium refractive index (complex)
   * @param m       the rest mass of the emitting particle (in electron masses)
@@ -1086,7 +1087,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
         // (T = 2 \pi / (d\phi/dt)) at t = tb
         double osc_period = 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp);
         // lower limit of the integration
-        double ta = osc_period * period_fraction_s * 1e-4; // to avoid sin(0) / 0
+        double ta = 0;
         // number of points for the exponent integration
         long long int nt = llround((tb - ta) / (osc_period * period_fraction_s));
         // step of the integration
@@ -1109,11 +1110,19 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
                      * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
                      * exp(-t * reverse_tau_d)
                      * ( eta * cos(phi) - nu * sin(phi) )
-                     // * 0.5 * (1 - tanh(9 * (t / tb - 0.6))); // qwe
                      * 0.5 * (1 - tanh(9 * (t / tb - 0.55)));
                      // note that artificial attenuation is added here; the idea behind is that
                      // with this attenuation neighboring bumps quench each other earlier hence
                      // smaller integration interval can be used
+            }
+        );
+        auto g = std::function<double(double)>( // qwe
+            [=](double t) {
+                double phi = 2 * M_PI * ( t * signed_reverse_tau_parallel + pow(t / tau_perp, 3) );
+                return alpha * b / M_PI * k * k * theta
+                     * (theta * theta - t * t / (4 * gamma_p * gamma_p * m * m))
+                     * ( eta * cos(phi) - nu * sin(phi) )
+                     * 0.5 * (1 - tanh(9 * (t / tb - 0.55)));
             }
         );
 
@@ -1128,8 +1137,8 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
 
         // we integrate in this (more "synchrotron") case of the interval from 0 to l_s scales of
         // the descent of the integrals
-        double l_s = 14;
-        double period_fraction_s = 1 / exp(1); // fraction of the minimal period which
+        double l_s = 11;
+        double period_fraction_s = 1 / (30 * exp(1)); // fraction of the minimal period which
                                                // determines the timestep; irrational to
                                                // avoid resonances
 
@@ -1141,7 +1150,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
         double osc_period = std::min( 1 / (reverse_tau_parallel + 3 * pow(tb / tau_perp, 2) / tau_perp)
                                     , 1 / reverse_tau_d );
         // lower limit of the integration
-        double ta = osc_period * period_fraction_s * 1e-4; // to avoid sin(0) / 0
+        double ta = 0;
         // number of points for the exponent integration
         long long int nt = llround((tb - ta) / (osc_period * period_fraction_s));
         // step of the integration
