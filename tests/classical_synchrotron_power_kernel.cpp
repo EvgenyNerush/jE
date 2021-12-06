@@ -9,6 +9,8 @@ using namespace std;
 using namespace std::literals::complex_literals;
 
 double err = 0.001; // acceptable relative error
+double err2a = 0.01; // acceptable relative error; in some cases the integrals converge too
+                     // slowly and the acceptable error is bigger for the sake of performance
 double chi = 1e7;
 double b = 0.1;
 double gamma_p = chi / b;
@@ -100,8 +102,6 @@ int main() {
     kappa = 50;
 
     // (a)
-    double err2a = 0.01; // acceptable relative error; in this case the integrals converge too
-                         // slowly and the acceptable error is bigger for the sake of performance
     ntype = Ntype::Re;
     theta = 1e-4;
 
@@ -137,9 +137,88 @@ int main() {
              << "computed res = " << res          << '\n';
     }
 
+    /**** 3 ****/
+    kappa = 8;
+
+    // (a)
+    ntype = Ntype::Re;
+    theta = 1.7e-4;
+
+    //print_params(ntype, kappa, theta);
+    expected_res = 2.2962e-4;
+    res = kernel(ntype, kappa, theta);
+    bool passed_3a;
+    if (fabs(res / expected_res - 1) < err) {
+        passed_3a = true;
+    } else {
+        passed_3a = false;
+        cout << "classical_synchrotron_power_kernel test: \x1b[1;31mfailed\x1b[0m\n";
+        cout << "acc. error   = " << err          << '\n'
+             << "expected res = " << expected_res << '\n'
+             << "computed res = " << res          << '\n';
+    }
+
+    // (b)
+    ntype = Ntype::ReIm;
+    theta = 0.02;
+
+    //print_params(ntype, kappa, theta);
+    expected_res = 2.1934e-5;
+    res = kernel(ntype, kappa, theta);
+    bool passed_3b;
+    if (fabs(res / expected_res - 1) < err2a) {
+        passed_3b = true;
+    } else {
+        passed_3b = false;
+        cout << "classical_synchrotron_power_kernel test: \x1b[1;31mfailed\x1b[0m\n";
+        cout << "acc. error   = " << err2a          << '\n'
+             << "expected res = " << expected_res << '\n'
+             << "computed res = " << res          << '\n';
+    }
+
+    /**** 4 ****/
+    kappa = 100'000;
+
+    // (a)
+    ntype = Ntype::Re;
+    theta = 1.1e-5;
+
+    //print_params(ntype, kappa, theta);
+    expected_res = 3.9308e-2;
+    res = kernel(ntype, kappa, theta);
+    bool passed_4a;
+    if (fabs(res / expected_res - 1) < err) {
+        passed_4a = true;
+    } else {
+        passed_4a = false;
+        cout << "classical_synchrotron_power_kernel test: \x1b[1;31mfailed\x1b[0m\n";
+        cout << "acc. error   = " << err          << '\n'
+             << "expected res = " << expected_res << '\n'
+             << "computed res = " << res          << '\n';
+    }
+
+    // (b)
+    ntype = Ntype::ReIm;
+    theta = 1.1e-5;
+
+    //print_params(ntype, kappa, theta);
+    expected_res = 3.8468e-2;
+    res = kernel(ntype, kappa, theta);
+    bool passed_4b;
+    if (fabs(res / expected_res - 1) < err) {
+        passed_4b = true;
+    } else {
+        passed_4b = false;
+        cout << "classical_synchrotron_power_kernel test: \x1b[1;31mfailed\x1b[0m\n";
+        cout << "acc. error   = " << err          << '\n'
+             << "expected res = " << expected_res << '\n'
+             << "computed res = " << res          << '\n';
+    }
+
     /**** ****/
 
-    if (passed_1a && passed_1b && passed_2a && passed_2b) {
+    if (  passed_1a && passed_1b && passed_2a && passed_2b && passed_3a && passed_3b
+       && passed_4a && passed_4b ) {
         cout << "classical_synchrotron_power_kernel test: \x1b[32mpassed\x1b[0m\n";
     }
 

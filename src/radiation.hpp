@@ -1011,7 +1011,7 @@ double classical_synchrotron_power_kernel( std::complex<double> ri
     double l = 2;
     double period_fraction = 1/2.0; // fraction of the minimal period which determines the
                                     // timestep, in the Cherenkov case
-    long long int nt_max = 40'000;
+    long long int nt_max = 80'000;
 
     // a point where linear and cubic terms in the phase yield the same oscillation period; if
     // varsigma = -1, then d\phi / dt = 0 at t = t_s
