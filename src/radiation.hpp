@@ -532,22 +532,29 @@ std::complex<double> vacuum_refractive_index_perp( double b
                                                  , double omega
                                                  ) {
     double k = omega * b * b; // kappa, i.e. chi of the photon
-    double c1 = 2.4;
-    double c2 = 150;
-    double c3 = 0.079;
-    double c4 = 0.97;
-    double c5 = 1.1;
-    double c6 = 0.0073;
-    double c7 = 0.024;
-    double c8 = 9.4;
+    double c1 = 2.6;
+    double c2 = 60;
+    double c3 = 0.07;
+    double c4 = 0.9;
+    double c5 = 1.0;
+    double c6 = 0.008;
+    double c7 = 0.045;
+    double c8 = 5.2;
+    double c9 = 15;
     double Re_N = 14.0/45 / (1 + pow(k / c1, 2))
-                - 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
+                - 1.65 * pow(k + c9, -4.0/3) * k / (k + c2)
                 + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
                 - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
-    double d1 = 1.3;
-    double d2 = 1.47;
+    double d1 = 1.12;
+    double d2 = 1.3;
+    double d3 = 0.26;
+    double d4 = 128;
     double Im_N = 4 * M_PI * d1 * pow(3.0/8, 3.0/2) * exp( - 8.0 / ( 3 * k ) )
-                / ( k * ( 1 + (d1 * pow(3.0/8, 3.0/2) * exp(0.0)) / 0.38 * d2 * pow(k, 1.0/3) ) );
+                / ( k * ( 1
+                        + (d1 * pow(3.0/8, 3.0/2) * exp(0.0))
+                          / 0.38 * (d2 + d3 * k / (k + d4)) * pow(k, 1.0/3)
+                        )
+                  );
     return 1.0 + alpha * b * b * (Re_N + 1i * Im_N) / (4 * M_PI);
 }
 
@@ -573,22 +580,29 @@ std::complex<double> vacuum_refractive_index_parallel( double b
                                                      , double omega
                                                      ) {
     double k = omega * b * b; // kappa, i.e. chi of the photon
-    double c1 = 2.8;
-    double c2 = 170;
-    double c3 = 0.041;
-    double c4 = 1.5;
+    double c1 = 3.0;
+    double c2 = 25;
+    double c3 = 0.046;
+    double c4 = 1.9;
     double c5 = 1.0;
-    double c6 = 0.005;
-    double c7 = 0.026;
-    double c8 = 8.0;
-    double Re_N = 4.0/7 * 14.0/45 / (1 + pow(k / c1, 2))
-                - 2.0/3 * 1.65 * pow(k, -4.0/3) * pow(k, 5.0/3) / (pow(k, 5.0/3) + pow(c2, 5.0/3))
+    double c6 = 0.0062;
+    double c7 = 0.063;
+    double c8 = 3.5;
+    double c9 = 35;
+    double Re_N = 14.0/45 / (1 + pow(k / c1, 2))
+                - 1.65 * pow(k + c9, -4.0/3) * k / (k + c2)
                 + c3 * exp( -c4 * (k + c5 * c5 / k - 2 * c5))
                 - c6 * exp( -c7 * (k + c8 * c8 / k - 2 * c8));
-    double d1 = 0.5;
-    double d2 = 1.85;
+    double d1 = 0.43;
+    double d2 = 1.4;
+    double d3 = 0.79;
+    double d4 = 79;
     double Im_N = 4 * M_PI * d1 * pow(3.0/8, 3.0/2) * exp( - 8.0 / ( 3 * k ) )
-                / ( k * ( 1 + (d1 * pow(3.0/8, 3.0/2) * exp(0.0)) / 0.38 * d2 * pow(k, 1.0/3) ) );
+                / ( k * ( 1
+                        + (d1 * pow(3.0/8, 3.0/2) * exp(0.0))
+                          / 0.38 * (d2 + d3 * k / (k + d4)) * pow(k, 1.0/3)
+                        )
+                  );
     return 1.0 + alpha * b * b * (Re_N + 1i * Im_N) / (4 * M_PI);
 }
 
