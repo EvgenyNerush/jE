@@ -26,13 +26,8 @@ Html documentation can be produced with Doxygen:
     cd doc
     doxygen doxygen.conf
 
-and then can be found in doc/html/index.html. See online version [here](https://evgenynerush.github.io/jE-doc/).
+and then can be found in doc/html/index.html. See online version for OLD code (v 1.0.0) [here](https://evgenynerush.github.io/jE-doc/).
 
 ## Licence
 
 BSD-3
-
-## Acknowledgments
-
-Development of this code up to v1.0.0 was supported by the Russian Science Foundation through Grant
-No.  18-72-00121.
